@@ -47,11 +47,11 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 | L-04 | **Stock first.** Donors are messaged only for the gap, and only if their unit can be ready before the deadline (testing included). If donors can't help in time, there are zero invites and the agent goes to stock and escalation. |
 | L-05 | **Statuses:**<br>• `OPEN`<br>• `COVERED` (firm chance ≥ 90%)<br>• `SECURED`: every unit reserved, or collected with ready time before the deadline. Donors are stood down and the family is told to stop forwarding.<br>• `FULFILLED`: staff tap "Ready for patient".<br>• `FAILED`<br>• `CANCELLED` |
 | L-06 | **Staff flow on Telegram:**<br>• Stock: `Reserve N / Some / None`.<br>• Donor visit: `Arrived / Didn't show` → `Collected / Deferred` → `Ready for patient / Failed testing`.<br>• No tap in time → one reminder → escalation. |
-| L-07 | One live number, **P** = chance enough units are ready by the deadline. It drives:<br>• waiting for stock replies;<br>• the size of each donor wave (smallest that reaches 90%);<br>• backups;<br>• escalation. |
+| L-07 | One live number, **P**: a posterior mixture over tonight's reply rate (AGENT §3). Wave size is chosen by expected cost (failure risk vs donors disturbed, τ), stopping at 90% (AGENT §5). Stock waiting uses the slack rule. P_firm drives COVERED; P_best drives escalation. |
 | L-08 | **Escalation:**<br>• L1: widen the search radius.<br>• L2: alert the coordinator with the LLM brief and a call list.<br>• FAILED at the deadline. |
 | L-09 | **Today's-workflow lane:** the same world, run with today's behaviour, shown side by side. A **live benchmark** reports both. |
 | L-10 | **Channel:** Telegram bot for real people in the demo; a simulated channel for everyone else. WhatsApp is the production path (pitch only). |
-| L-11 | Synthetic data only. Same world model as the ideation simulation, ported to Python. Numbers live in config with a one-line basis. |
+| L-11 | Synthetic data only. Same world model as the ideation simulation, ported to Python, with the tonight factor rescaled to mean 1.0 (AGENT §9). Numbers live in config with a one-line basis. |
 | L-12 | Two people, one Telegram bot, one laptop. No hosting, no database. |
 
 ## 4. Base requirements (the project is "done" when all of these work)
@@ -66,7 +66,7 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 
 **Donors**
 
-4. Donor waves, smallest that reaches 90%, capped at 10.
+4. Donor waves sized by expected cost (AGENT §5), at most 10 per wave.
 5. Rest rules respected.
 6. Replies read by the LLM, or by rules when the LLM is off. Too-late replies are not counted.
 7. Yes → active (booking code + directions) or standby.
@@ -82,7 +82,7 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 **Proof**
 
 13. Today's-workflow lane, side by side.
-14. Benchmark on N random requests, reporting:
+14. Benchmark on N random requests, with common random numbers; essential policies today vs rakttrace with paired 95% CIs; optional tiers in AGENT §10. Reporting:
     - on time %;
     - said done but wasn't %;
     - donors messaged per request;
@@ -120,18 +120,16 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 See `FEATURES.md`. Order:
 1. Break-it button
 2. Plea-still-active check
-3. "Why?" button
-4. Recurring patients
-5. Mission-control view
 
 ## 8. Pending (defaults apply if no answer)
 
 | Item | Default |
 |---|---|
 | Organiser: is any code allowed before the event? | No project code. Setup (Phase 0) only. |
-| Exact build hours and judging format | About 6 hours; 5-minute pitch + demo |
+| Exact build hours and judging format | About 8 hours; 5-minute pitch + demo |
 | LLM chain order | Set after the Phase 0 key tests |
 
 ## 9. Change log
 
 - 22 Oct 2026: spec created from the team's discussions and the submitted proposal.
+- 23 Oct 2026: final design. Waves sized by expected cost, stopping at 90% (D1); P as a posterior mixture over tonight's reply rate (D2); slack stock-wait rule kept, lookahead as a stretch (D3); rescaled world factor, common random numbers and tiered benchmark with paired CIs (D4); shared types and internal interfaces in BUILD §5.2/§5.4 (D5). Statuses, scenarios and safety rules unchanged. Follow-ups: STOP likelihood, CI shape per policy, llm.status shape, L-11 and hours wording.

@@ -34,8 +34,9 @@ Versions: latest stable on the day, pinned by `uv.lock` and `package-lock.json`.
 
 ## 3. Git
 
-- **`main`:** verified code only.
-- **`phase`:** the working branch. Build the current phase on `phase`. When its *Done when* passes, merge into `main` and carry on with the next phase on `phase`.
+- Docs baseline lives on `main`.
+- For the build: **`main`** = verified code only; one working branch **`phase`**; merge into `main` when a phase's *Done when* passes, then carry on with the next phase on `phase`.
+- Local only, no remote until the event.
 - Commit messages: `phase 4: donor waves and promotion`.
 
 ## 4. Folder layout
@@ -61,6 +62,7 @@ rakttrace/
 │   │   ├── channels/          # router.py · telegram_bot.py · simulated.py
 │   │   ├── sim/               # world.py · scenarios.py · bots.py · benchmark.py · phrases.py · phrase_cache.json
 │   │   └── api/               # requests.py · sim.py · demo.py · benchmark.py · llm.py
+│   ├── bench/                 # cached benchmark results: results_<regime>_<seed>.json
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
@@ -86,11 +88,22 @@ Channel           sim | telegram
 Labels: `O_POS` → "O+", …; `PRBC` → "Red cells", `SDP` → "Platelets (SDP)".
 
 ### 5.2 Core objects (backend)
+
+**Shared types** (in `models.py`, owned by core; everyone else imports them):
+```python
+Button:       id, title
+Contact:      name, channel, chat_id | phone
+Outgoing:     to: Contact, kind, body, buttons: list[Button], request_id
+Inbound:      channel, sender_id, text | None, button_id | None, at
+PleaDraft:    group, product, units, hospital_id, deadline_at, missing, confidence, read_by
+ReplyRead:    intent, available_from, confidence, read_by
+```
+
+**State:**
 ```python
 Hospital:     id, name, area, lat, lon, centre_id | None
 Centre:       id, name, area, address, lat, lon, phone, accepts_donors, apheresis, contact: Contact
 Stock:        centre_id, product, group, listed_units, listed_at, true_units      # true_units hidden from API/agent
-Contact:      name, channel, chat_id | phone
 Donor:        id, display_name, group, sex, age, weight_kg, lat, lon, area, contact,
               consent, opted_out, apheresis_ok, last_whole_blood_at, apheresis_dates,
               donation_verified, deferred_until, invites: list[datetime], telegram_demo: bool
@@ -100,7 +113,7 @@ Reservation:  id, request_id, centre_id, group, units_asked, units_reserved, sta
 Pledge:       id, request_id, donor_id, status, wave, invited_at, replied_at, reply_text,
               available_from, booking_code, ready_at, why
 Decision:     id, request_id, at, trigger, p_before, p_after, status, actions: list[str], summary
-Message:      id, at, direction (out|in), channel, to_name, request_id, kind, body, buttons, read_by (llm|rules|button)
+Message:      id, at, direction (out|in), channel, to_name, request_id, kind, body, buttons: list[Button], read_by (llm|rules|button)
 BaselineState: request_id, status, said_fulfilled_at, found_units, donors_messaged, timeline: list[str]
 ```
 
@@ -180,10 +193,16 @@ POST /demo/auto          {on: bool} → {auto}     # 1 sim minute per real secon
 GET  /llm                → {enabled, chain: [{name, healthy}]}
 POST /llm                {enabled: bool} → same
 
-POST /benchmark          {n: 500, seed: 7, reader: "llm"|"rules"}
-  → {n, by_product: {...}, today: Metrics, rakttrace: Metrics}
+POST /benchmark          {n: 500, seed: 2026, reader: "llm"|"rules",
+                          policies?: ["today", "rakttrace", "broadcast", "threshold"], regime?: "nominal"|"stress"}
+  → {n, by_product: {...}, today: Metrics, rakttrace: Metrics,
+     others?: {broadcast?: Metrics, threshold?: Metrics},
+     ci?: {today: {on_time_diff, donors_diff},             # paired 95% CI (AGENT §10);
+           broadcast?: {...}, threshold?: {...}},          # each value = rakttrace minus that policy
+     calibration?: {brier, bins: [{p_mean, freq, n}]}}
 Metrics = {on_time_pct, false_done_pct, donors_messaged, zero_donor_pct, warned_early_pct, median_warning_h}
 ```
+The frontend renders the optional parts only if present.
 
 **Telegram button ids**
 | Pattern | Who |
@@ -195,28 +214,77 @@ Metrics = {on_time_pct, false_done_pct, donors_messaged, zero_donor_pct, warned_
 
 Simulated phones use the same ids.
 
+### 5.4 Internal interfaces
+
+How the modules call each other. Types are from §5.2.
+
+```python
+# channels/router.py
+deliver(msg: Outgoing) -> Message           # never raises; a failed Telegram send is mirrored to the sim inbox
+
+# agent/loop.py
+handle_inbound(msg: Inbound) -> None        # called by the bot and by POST /api/sim/reply
+link_chat(start_param, chat_id, display_name) -> str
+
+# llm/  (never raise; fall back to rules internally)
+read_plea(text, hospitals, now) -> PleaDraft
+read_reply(text, deadline, now) -> ReplyRead
+write_brief(facts) -> str
+set_enabled(on: bool) -> None
+status() -> {enabled: bool, chain: [{name, healthy}]}     # same shape as GET /api/llm
+```
+
+Message copy is rendered by `agent/messages.py`; channels only deliver.
+
+**Ownership:**
+- core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);
+- `channels/` + `llm/` = Aditya;
+- `frontend/` = Antigravity scaffold, then Aditya.
+
+`models.py` and `config.py` are changed by core only; everyone else imports them.
+
 ## 6. Phases
 
-**Phase 0 (setup) is done before the event.** Phases 1–7 are backend. During phases 1–7, Aditya works on **frontend design only** (screens, layout, colours, references). Phases 8–9 build the frontend straight on the real API. Phase 10 is the gate.
+**Phase 0 (setup) is done before the event.** Phases 1–5 and 7 are core backend (Suryansh). Phase 6 is built by Aditya in parallel from hour 1, against §5.4. The frontend is scaffolded by Antigravity on mocks from hour 0 (`frontend/` only); Aditya then takes it over. Phases 8–9 wire the frontend to the real API. Phase 10 is the gate.
 
 | Phase | Build | Done when |
 |---|---|---|
 | **0. Setup** | Telegram bot via BotFather (name, username, token, picture). A second Telegram account or group for "Centre B staff". LLM keys for each chain entry, each tested with one JSON call that reads "kal subah 8 baje aa jaunga". `.env` on both laptops. Python 3.12, uv, Node, git, Claude Code installed. | Bot replies to `/start` from a non-team phone; at least 2 LLM entries return valid JSON; `.env` complete |
-| **1. Foundation** | Project setup, `config.py`, `models.py`, store, sim clock + timer queue, seeded world generator (places, stock, donors), scenario loader | App starts; S1 loads; Step moves the clock |
+| **1. Foundation** | Project setup, `config.py`, `models.py`, store, sim clock + timer queue, seeded world generator (places, stock, donors), scenario loader | App starts; S1 loads; Step moves the clock; latent draws reproducible per seed; factor mean = 1.0; shared types and §5.4 stubs exist |
 | **2. Domain rules** | Compatibility, O− protection, eligibility E1–E11, travel time, timing checks, `donors_can_help` | Tests: compatibility table, 90/120-day rule, "PRBC can't make a 4 h deadline", "SDP can make 16 h" |
-| **3. Stock first** | P (sources + DP + `r̂`), stock step, wait-or-invite rule, reservations with release of extras, decision log | Test: S1 → 0 donors, A 1 + B 1 reserved, SECURED |
-| **4. Donors** | Ranking + filters, waves to 90%, rest rules, reply handling (button + rules reader), ACTIVE/STANDBY, TOO_LATE, promotion, booking codes, message templates | Test: S2 reaches SECURED via a promotion; "kal 11:55" counted as too late |
+| **3. Stock first** | P (sources + mixture posterior + DP), stock step, wait-or-invite rule, reservations with release of extras, decision log | Test: S1 → 0 donors, A 1 + B 1 reserved, SECURED. Posterior tests: prior at 0 replies; shifts up after yeses, down after explicit noes; silence weaker than a no; P_firm identical under all rates |
+| **4. Donors** | Ranking + filters, waves sized by expected cost (AGENT §5), rest rules, reply handling (button + rules reader), ACTIVE/STANDBY, TOO_LATE, promotion, booking codes, message templates | Test: S2 reaches SECURED via a promotion; "kal 11:55" counted as too late. Need-2 and need-3 requests invite > 0 donors; argmin matches a hand-computed table; higher τ never increases k*; target-unreachable case invites K (capped per wave); caps and O− hold; re-plan is idempotent; S2: 0 invites at t = 0, then 1 ACTIVE + 2 STANDBY = COVERED |
 | **5. Closing + escalation** | SECURED/FULFILLED, stand-down, family messages, staff reminders, L1/L2/FAILED, call list, duplicate merge, cancel | Tests: S1–S3 end to end; S3 has 0 invites and L2 within 5 sim minutes |
-| **6. Telegram + LLM** | Bot (deep-link roles, inline buttons, free text), router (Telegram or sim), LLM chain client, plea reader, reply reader, brief writer, toggle, fallbacks | A Telegram tap and a Hinglish reply move a request; the same works with the LLM off; killing the network doesn't crash anything |
-| **7. Baseline, benchmark, API** | Today's-workflow policy, phrase bank + cache, benchmark, every endpoint in §5.3 | `POST /benchmark` returns both metric sets; every endpoint matches its shape |
+| **6. Telegram + LLM** | Against §5.4: bot (deep-link roles, inline buttons, free text), router (Telegram or sim), LLM chain client, plea reader, reply reader, brief writer, toggle, fallbacks | A Telegram tap and a Hinglish reply move a request; the same works with the LLM off; killing the network doesn't crash anything |
+| **7. Baseline, benchmark, API** | Today's-workflow policy, phrase bank + cache, benchmark, every endpoint in §5.3 | Essential benchmark tier (today vs rakttrace, common random numbers) returns both metric sets with paired 95% CIs; results cached to `backend/bench/`; every endpoint matches its shape. Optional tiers (AGENT §10): broadcast, threshold, stress regime, calibration |
 | **8. Frontend core** | Request view (two lanes, gauge, ladder, decision log), controls (reset, step, advance, auto) | S1 runs from the dashboard with both lanes updating |
 | **9. Frontend finish** | New request (paste → draft → confirm), phones panel, escalation banner + brief, LLM toggle, benchmark page, phone-width layout | S2 runs fully from the dashboard with a real Telegram donor and staff |
 | **10. Rehearsal (gate)** | Full demo from `PITCH.md` §2 | One clean run with no code changes; recorded as the backup video |
 
 After phase 10: `FEATURES.md`, in order. Each feature merges only if S1–S3 and the benchmark still work.
 
+**Schedule (8 h)** — core | parallel:
+
+| Time | Core (Suryansh) | Parallel (Aditya / Antigravity) |
+|---|---|---|
+| 0:00–0:45 | Phase 1 | Phase 6 bot + frontend scaffold |
+| 0:45–1:30 | Phase 2 | Phase 6 LLM |
+| 1:30–2:45 | Phase 3 | Phase 6 finish |
+| 2:45–4:00 | Phase 4 | Frontend views |
+| 4:00–4:45 | Phase 5 | Frontend form, phones, benchmark |
+| 4:45–5:45 | Phase 7 | Wire frontend |
+| 5:45–6:45 | Integration | Integration |
+| 6:45–7:15 | Rehearsal gate + backup video | |
+| 7:15–8:00 | Optional benchmark tiers, or Break-it, or buffer | |
+
+**Cut lines:**
+- 4:00: if the expected-cost wave sizing isn't passing, set `SIZING = "target"` (the mixture P stays).
+- 5:45: freeze the benchmark at the completed tier.
+
 **If behind schedule, cut in this order:**
-1. auto-play;
+1. optional benchmark tiers;
+2. stock-wait lookahead;
+3. auto-play;
 2. benchmark split by product;
 3. phone-width layout;
 4. brief by LLM (use the template instead);

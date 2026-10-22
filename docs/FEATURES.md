@@ -17,7 +17,7 @@ Utilities (duplicate merge, stop-forwarding, stand-down, standby, reminders, boo
 
   A judge picks one, and the agent replans live.
 - **Why:** the clearest proof that it's an agent, not a script.
-- **Hook:** injects the same events the world already produces (staff tap, stock answer, timeout, request edit) into `agent/loop.py`. No new logic.
+- **Hook:** injects the same events the world already produces (staff tap, stock answer, timeout, request edit) into `agent/loop.py`. No new logic. Each break re-runs the planner; the decision summary shows the new trade-off.
 - **API:** `POST /api/demo/break {kind: "deferral"|"wrong_listing"|"silent"|"deadline"}`.
 - **Demo moment:** "Pick any failure." The judge clicks; the P gauge drops; a backup or a new wave goes out; the decision log explains.
 - **Done when:** each kind works on S2 and the request still ends correctly.
@@ -34,31 +34,11 @@ Utilities (duplicate merge, stop-forwarding, stand-down, standby, reminders, boo
 - **Done when:** fulfilled, open and unknown pleas each get the right reply, with the LLM on and off.
 - **Size:** small.
 
-## Priority 2: if time remains
-
-### 3. "Why?" button
-- **What:** on each decision in the log, "Why?" → the LLM answers in 2–3 lines using only that decision's facts (P before/after, candidates, rules applied).
-- **Hook:** `llm/reader.py` gets one more prompt. Fallback: the decision's template summary.
-- **API:** `POST /api/requests/{id}/decisions/{decision_id}/why` → `{answer}`.
-- **Demo moment:** "Why only 4 donors?" → "4 more invites lift the chance from 81% to 91%; more would disturb people without much gain."
-- **Size:** small.
-
-### 4. Recurring patients
-- **What:** register a patient on a fixed transfusion schedule (e.g. thalassemia, every 21 days). RaktTrace creates the request 3 days before each date and runs the normal loop. With days of lead time, it waits for stock, and donors are rarely needed.
-- **Hook:** a scheduled timer creates a normal request (`source: "recurring"`). The core is unchanged. On FULFILLED, the next date rolls forward.
-- **API:** `POST /api/patients {label, group, product, units, hospital_id, interval_days, next_at}`, `GET /api/patients`.
-- **Demo moment:** register → +1 day jumps → the request appears, stock reserved, 0 donors, one message to the family.
-- **Size:** medium.
-
-## Priority 3: only if well ahead
-
-### 5. Mission-control view
-- **What:** a full-screen view with a map (centres, hospital, donors moving to the centre), a countdown, and the P gauge.
-- **Hook:** frontend only, reading the existing RequestView (Leaflet + OpenStreetMap tiles).
-- **Size:** medium.
-
 ## Backlog (pitch as "what's next", don't build)
 
+- "Why?" button: replaced by the decision summaries, which already state the trade-off.
+- Recurring patients: medium size and not needed to prove the core; pitch as "what's next".
+- Mission-control view: frontend-only polish with a map; no time in the 8 h schedule.
 - Shortage nudges: repeated shortages at a centre → suggest a donation drive to that centre, which approves it.
 - Donor reliability memory: learn who replies and shows up.
 - Voice-note replies.

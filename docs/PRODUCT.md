@@ -76,7 +76,7 @@ Linked Telegram donors are real people in the demo. They rank first among equal 
 
 ### 3.3 Donors for the gap
 1. Only if stock can't cover the gap, **and** a donor's unit could still be ready before the deadline.
-2. The agent invites the smallest set that brings P to 90% (max 10 per wave), from donors who pass every filter.
+2. The agent invites a batch chosen by expected cost (the chance of success against disturbing more people), at most 10 per wave, from donors who pass every filter.
 3. Replies:
    - **yes, in time** → ACTIVE (booking code, directions; staff get an incoming card) or STANDBY;
    - **yes, too late** ("kal 11:55") → thanked, not counted;

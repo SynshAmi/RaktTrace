@@ -24,9 +24,9 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 | 3 | Stock first | Suryansh | TODO | |
 | 4 | Donors | Suryansh | TODO | |
 | 5 | Closing + escalation | Suryansh | TODO | |
-| 6 | Telegram + LLM | Aditya or Suryansh | TODO | |
+| 6 | Telegram + LLM | Aditya (parallel) | TODO | |
 | 7 | Baseline, benchmark, API | Suryansh | TODO | |
-| — | Frontend design (alongside 1–7) | Aditya | TODO | |
+| — | Frontend scaffold on mocks (alongside 1–7) | Antigravity, then Aditya | TODO | |
 | 8 | Frontend core | Aditya | TODO | |
 | 9 | Frontend finish | both | TODO | |
 | 10 | Rehearsal (gate) | both | TODO | |
@@ -37,9 +37,6 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 |---|---|---|
 | 1 | Break-it button | TODO |
 | 2 | Plea-still-active check | TODO |
-| 3 | "Why?" button | TODO |
-| 4 | Recurring patients | TODO |
-| 5 | Mission-control view | TODO |
 
 ## Phase 0 results
 
@@ -55,12 +52,13 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 
 ## Benchmark (fill in after phase 7 and on stage)
 
-| Run | n | seed | On time (today / ours) | False done (today / ours) | Donors messaged (today / ours) | Zero-donor (today / ours) | Warned early (today / ours) | Median warning (h) |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+| Run | policy | regime | n | seed | on_time | donors_messaged | zero_donor | warned_early | false_done | CI (on_time diff) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | |
 
 ## Log
 
 `date time · phase · who · note`
 
 - 22 Oct · docs · both · Final doc set created (SPEC, PRODUCT, AGENT, DOMAIN_RULES, BUILD, FEATURES, PITCH, PROGRESS, CLAUDE.md, README).
+- 23 Oct · docs · Suryansh · docs: final design D1–D5 applied.

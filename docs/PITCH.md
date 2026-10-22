@@ -1,6 +1,6 @@
 # RaktTrace: Pitch, Demo and Q&A
 
-Numbers on stage come from the **live benchmark**. Ideation numbers are quoted only as "our ideation simulation showed…".
+Numbers on stage come from the **benchmark** (cached run + live re-run). Ideation numbers are never quoted.
 
 ---
 
@@ -11,7 +11,7 @@ Numbers on stage come from the **live benchmark**. Ideation numbers are quoted o
 | **Hook** | "A dengue patient needs platelets by 2 PM tomorrow. At 10:40 PM a donor says 'haan, aa sakta hoon'. Everyone marks it done. At 11 PM he's deferred at screening. Nobody notices. At 2 PM there are no platelets." |
 | **Problem** | "Today a request is 'done' the moment someone says yes. But a yes isn't blood. Listings are hours old, 'kal aaunga' means tomorrow, donated blood needs hours of testing, donors get deferred, and pleas are never closed." |
 | **RaktTrace** | "RaktTrace is an agent for helpline coordinators. It checks stock first, contacts only the donors truly needed, checks every reply against the real deadline, keeps backups ready, warns a person early, and closes a request only when a blood centre confirms." |
-| **Why it's an agent** | "It runs a loop: observe, read, estimate the chance of success, decide, act, and repeat until the blood centre confirms. One number drives every decision. The LLM is its eyes and ears: it reads Hinglish. Decisions stay in code we can test, because this is blood." |
+| **Why it's an agent** | "It runs a loop: observe, read, estimate the chance of success, decide, act, and repeat until the blood centre confirms. One number drives every decision. The LLM is its eyes and ears: it reads Hinglish. Decisions stay in code we can test, because this is blood. It decides how many people to message by weighing the chance of failure against disturbing donors, and it knows replies on a bad night fail together." |
 | **Demo** | §2 |
 | **Proof** | Live benchmark table: on time, said-done-but-wasn't, donors messaged, zero-donor, warned early. |
 | **What's next** | WhatsApp channel, real stock feeds, recurring patients, regional languages. |
@@ -25,14 +25,14 @@ Numbers on stage come from the **live benchmark**. Ideation numbers are quoted o
 |---|---|---|---|
 | 1 | Reset **S1**, Step through | Left lane: today's workflow trusts Centre A's 19-hour-old listing. Right lane: RaktTrace asks B and A in parallel (enough for 90%); A really has 1; reserves A 1 + B 1; **0 donors**; SECURED | "Surgery tonight. Donated blood can't be tested in 4 hours, so RaktTrace doesn't bother a single donor. Today's workflow messages 30 and says 'fulfilled' with 1 of 2 units." |
 | 2 | Reset **S2**; ask judges to scan the QR | Judges' phones become donors | "You're now O+ platelet donors near the hospital." |
-| 3 | Step: Centre A answers None | P drops; the smallest wave goes out, including the judges' phones | "It waited for the stock reply first. Now it messages just enough people to reach 90%." |
+| 3 | Step: Centre A answers None | P drops; a first wave (at most 10) goes out, including the judges' phones | "It waited for the stock reply first. Now it weighs the chance of failure against disturbing donors, and messages only that many." |
 | 4 | A judge replies in their own words | LLM reads it; ACTIVE; booking code and directions to the judge; incoming card on Aditya's phone | "Free text works. The staff already know who's coming." |
 | 5 | Another reply: "kal 11:55 ke baad free hoon" | Marked too late, not counted | "That's a yes, but platelets need about 8 hours to be usable. Not counted." |
 | 6 | Paste the same plea again | "Merged into RT-xxxx" | "Duplicate pleas don't start a second search." |
 | 7 | Aditya taps **Arrived**, then **Deferred** | COVERED → OPEN; a standby is promoted within seconds | "Deferred at screening. Today nobody would know. Here the backup is already on the way." |
 | 8 | Step to Collected | SECURED; donors stood down; family gets "stop forwarding" | "Closed only on the blood centre's confirmation." |
 | 9 | Toggle the LLM **off**, send a messy reply | Rules misread it, or ask for a button | "This is what the LLM adds." |
-| 10 | Run the **benchmark** (500) | Live table, today vs RaktTrace | "Not cherry-picked: 500 fresh requests, right now." |
+| 10 | Open the **benchmark** | Cached run (500): today / broadcast (if built) / RaktTrace, with paired 95% CIs; then a live re-run with N = 200 | "Not cherry-picked: every policy faces the same 500 requests, and we can re-run it right now." |
 | 11 | Reset **S3**, Step | 0 invites; L2 alert with the LLM brief and call list | "When it can't make it, it says so 6 hours early, with a handover." |
 
 If time is short: steps 1, 3, 4, 7, 8, 10.
@@ -69,11 +69,16 @@ If time is short: steps 1, 3, 4, 7, 8, 10.
 | Why Telegram, not WhatsApp? | "WhatsApp needs business verification and approved templates, which isn't a one-day job. The channel is a swappable adapter; WhatsApp is the production path." |
 | Privacy? | "We relay messages, so no numbers are exchanged. No patient names. The LLM never sees phones or names. STOP works instantly." |
 | Real data? | "e-RaktKosh has no public API we could find. Our stock data has the same shape, so a real feed plugs into one adapter." |
+| Isn't the benchmark circular, since you built the world? | "The agent's model differs from the world in shape: it assumes 3 possible reply rates, the world draws from 5. We also have an optional stress run with a worse world the agent isn't told about." |
+| Why 90%, and why τ? | "90% is where we stop adding donors. τ weighs one failed request like about 67 donor messages, so each extra invite has to earn its place." |
+| Is P calibrated? | If the calibration run was built: give the Brier score and bins. Otherwise: "Measured offline, not yet." |
 | What's real in the demo? | "The agent, the Telegram messages to your phones, the LLM reading, the staff taps. Simulated: the other donors and centres, and the stock." |
 
 ## 5. Lines to avoid
 
 - Don't present simulated numbers as real-world results.
+- Never quote ideation numbers.
+- Never present false-done 0% as evidence (it's 0% by construction).
 - Don't claim e-RaktKosh or WhatsApp integration.
 - Don't say the AI decides eligibility.
 - Don't name real blood centres or hospitals in demo data.
