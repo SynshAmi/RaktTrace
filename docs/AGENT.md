@@ -41,7 +41,7 @@ event (new request, staff tap, donor reply, silence timer, clock step)
 | `MAX_ASKS_30D` | 4 | Design |
 | `QUIET_HOURS` | 22:00–07:00, only for requests with > 24 h left | Design |
 | `SEARCH_RADII_KM` | [5, 10, 20, 40] | Design |
-| `STAFF_GRACE_MIN` | 30 | Design: reminder at expected time + 30; escalate at + 60. Expected times: arrival = booked_at + travel; screening result = arrived_at + VISIT; ready = collected_at + TEST (or reserved_at + ISSUE for stock); stock answer = asked_at + `STOCK_REPLY_TIMEOUT_MIN` (then `EXPIRED`, no reminder) |
+| `STAFF_GRACE_MIN` | 30 | Design: reminder at expected time + 30; escalate at + 60. Expected times: arrival = booked_at + travel; screening result = arrived_at + VISIT_MIN; ready = collected_at + TEST_MIN (or reserved_at + ISSUE_FROM_STOCK_MIN for stock); stock answer = asked_at + `STOCK_REPLY_TIMEOUT_MIN` (then `EXPIRED`, no reminder) |
 | **Timing** | | |
 | `TEST_MIN` | PRBC 720, SDP 360 | Whole-blood testing reported 12–24 h; SDP is an assumption |
 | `VISIT_MIN` | PRBC 45, SDP 120 | Assumption: registration + screening + collection |
@@ -151,21 +151,21 @@ travel_min(a, b) = haversine_km(a, b) × ROAD_FACTOR / CITY_SPEED_KMPH × 60
 **Donor** (donating at collection centre c, for hospital h):
 ```
 start        = available_from if available_from else now + reply_lag   # reply_lag = 15 min if not yet replied, else 0
-ready_at     = start + travel(donor, c) + VISIT[product] + TEST[product] + travel(c, h)
-on_time      = ready_at ≤ deadline − SAFETY_MARGIN
-latest_arrival = deadline − SAFETY_MARGIN − travel(c, h) − TEST − VISIT
+ready_at     = start + travel(donor, c) + VISIT_MIN[product] + TEST_MIN[product] + travel(c, h)
+on_time      = ready_at ≤ deadline − SAFETY_MARGIN_MIN
+latest_arrival = deadline − SAFETY_MARGIN_MIN − travel(c, h) − TEST_MIN − VISIT_MIN
 go_window    = latest_arrival − now           # not invited if < 20 min
 ```
 
 **Stock:**
 ```
-ready_at = now + (0 if reserved else STOCK_REPLY_TIMEOUT/2) + ISSUE_FROM_STOCK + travel(c, h)
+ready_at = now + (0 if reserved else STOCK_REPLY_TIMEOUT_MIN/2) + ISSUE_FROM_STOCK_MIN + travel(c, h)
 ```
 
 **Can donors still help at all?**
 ```
-min pipeline = min over centres(VISIT + TEST + travel(c, h)) + 15
-donors_can_help = now + min pipeline ≤ deadline − SAFETY_MARGIN
+min pipeline = min over centres(VISIT_MIN + TEST_MIN + travel(c, h)) + 15
+donors_can_help = now + min pipeline ≤ deadline − SAFETY_MARGIN_MIN
 ```
 
 With the defaults, donors can only help **whole-blood requests with more than about 14 h left**, and **platelet requests with more than about 9 h left**. Shorter requests are stock-only. That's the S1 and S3 behaviour.
@@ -196,7 +196,7 @@ Runs after every event, in this order.
 Reservations are kept in the order they arrive. If a reservation brings more units than are still needed, keep only what's needed (e.g. "Reserve 2" when 1 is needed → 1 reserved). Once the need is covered, release every pending ask.
 
 **Step 3: Wait or invite.**
-- If stock replies are pending and, after `STOCK_REPLY_TIMEOUT`, the go window would still be ≥ `WAIT_SLACK_MIN`: **wait**. Pending stock counts as p = 1 for this decision, so no donors are bothered yet.
+- If stock replies are pending and, after `STOCK_REPLY_TIMEOUT_MIN`, the go window would still be ≥ `WAIT_SLACK_MIN`: **wait**. Pending stock counts as p = 1 for this decision, so no donors are bothered yet.
 - Otherwise, if P < 0.9, donors can help, `REQUEST_DONOR_CAP` isn't reached, and (this is the first wave, **or** `WAVE_INTERVAL_MIN` has passed **and** at least one invite from the last wave has replied or timed out): size the wave by expected cost.
 
 ```
@@ -252,7 +252,7 @@ Standby buttons: **OK** = `OK` (no change), **Not available** = `CANT` → `RELE
 - P before and after;
 - status;
 - actions;
-- a one-sentence summary from a template, e.g. "Centre A had 0. Invited 10 donors (P 0% → 69%); the cost rule wanted 17, capped at 10 per wave."
+- a one-sentence summary from a template, e.g. "Centre A had 0. Invited 10 donors (P 0% → {p}%); the cost rule wanted more, capped at 10 per wave."
 
 ### 5.1 Ranking donors
 **Hard filters** (all must pass):

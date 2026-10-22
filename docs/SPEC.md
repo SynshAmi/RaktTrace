@@ -1,5 +1,7 @@
 # RaktTrace: Spec (source of truth)
 
+Docs v1.0 — locked 23 Oct 2026. Any change needs both teammates' agreement and a dated line in §9.
+
 **This file decides.** Every other doc explains *how*. If anything conflicts with this file, the other doc is wrong and gets fixed. Changing a decision here needs both teammates to agree, plus a dated line in §9.
 
 Team Veritas (HX-BDXL): Suryansh Singh, Aditya Dev. AgentOps 2026 (MIT Bengaluru × CGI), 24 Oct 2026.
@@ -101,7 +103,7 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 | ID | Situation | RaktTrace must | Today's workflow shows |
 |---|---|---|---|
 | **S1 `surgery_tonight`** | B+ 2 units red cells, deadline 4 h. Centre A lists 3 (19 h old) but has 1; Centre B lists 2 (fresh); Centre D lists 1. | Message **0 donors** (testing can't finish in 4 h). Reserve A 1 + B 1, release the rest. SECURED in under 20 min. | Trusts A, finds 1 of 2 after 45 min, forwards to 30 donors who can't help in time, says "fulfilled" on a late yes. **1 of 2 at the deadline.** |
-| **S2 `dengue_sdp`** (hero) | O+ 1 SDP platelets, deadline 14:00 next day. Centre A lists 1 (15 h old) but has 0. | Wait for A, then invite the smallest wave. First yes → active; next two → standby (COVERED); "kal 11:55" → too late, not counted. Active donor **deferred** → standby promoted → collected → SECURED → Ready tap → FULFILLED. A duplicate plea is merged. | Says "fulfilled" at the first yes. The deferral goes unnoticed. **0 of 1 at the deadline.** |
+| **S2 `dengue_sdp`** (hero) | O+ 1 SDP platelets, deadline 14:00 next day. Centre A lists 1 (15 h old) but has 0. | Wait for A, then invite the first wave: min(k*, 10) as computed by the planner (AGENT §5), which is 10 here. First yes → active; next two → standby (COVERED); "kal 11:55" → too late, not counted. Active donor **deferred** → standby promoted → collected → SECURED → Ready tap → FULFILLED. A duplicate plea is merged. | Says "fulfilled" at the first yes. The deferral goes unnoticed. **0 of 1 at the deadline.** |
 | **S3 `no_way_in_time`** | O− 2 units red cells, deadline 6 h, no O− stock within 40 km. | **0 donor invites.** Widen to 40 km, then L2 within minutes, with the brief and call list. FAILED at the deadline, but warned about 6 h early. | Forwards to donors who can't help in time, says "fulfilled" on a yes. No warning. |
 
 ## 6. Out of scope
@@ -121,15 +123,20 @@ See `FEATURES.md`. Order:
 1. Break-it button
 2. Plea-still-active check
 
+The benchmark's optional tiers come before these, and the stock-wait lookahead after them (`IMPLEMENTATION_PLAN.md`, "After phase 10").
+
 ## 8. Pending (defaults apply if no answer)
 
 | Item | Default |
 |---|---|
-| Organiser: is any code allowed before the event? | No project code. Setup (Phase 0) only. |
-| Exact build hours and judging format | About 8 hours; 5-minute pitch + demo |
+| Exact event hours and judging format | About 8 hours of focused build (a target, not a commitment); 5-minute pitch + demo |
 | LLM chain order | Set after the Phase 0 key tests |
+
+Resolved: local coding before the event is allowed; nothing is pushed to GitHub before the event.
 
 ## 9. Change log
 
 - 22 Oct 2026: spec created from the team's discussions and the submitted proposal.
 - 23 Oct 2026: final design. Waves sized by expected cost, stopping at 90% (D1); P as a posterior mixture over tonight's reply rate (D2); slack stock-wait rule kept, lookahead as a stretch (D3); rescaled world factor, common random numbers and tiered benchmark with paired CIs (D4); shared types and internal interfaces in BUILD §5.2/§5.4 (D5). Statuses, scenarios and safety rules unchanged. Follow-ups: STOP likelihood, CI shape per policy, llm.status shape, L-11 and hours wording.
+- 23 Oct 2026: implementation plan split into IMPLEMENTATION_PLAN.md; milestone-based cut triggers; no clock times.
+- 23 Oct 2026: Docs v1.0 locked: S2 first-wave wording, phrases.json path, final consistency pass.

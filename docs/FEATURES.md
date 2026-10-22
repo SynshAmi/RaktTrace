@@ -1,6 +1,6 @@
 # RaktTrace: Features After the Base
 
-**Rule:** nothing here starts until phase 10 (rehearsal) has passed and the backup video is recorded. Build in this order. Each feature merges only if S1–S3 and the benchmark still work. Otherwise drop it.
+**Rule:** nothing here starts until phase 10 (rehearsal) has passed and the backup video is recorded. Build in this order. Each feature merges only if S1–S3 and the benchmark still work. Otherwise drop it. The benchmark's optional tiers come before these, and the stock-wait lookahead after them (`IMPLEMENTATION_PLAN.md`, "After phase 10").
 
 Utilities (duplicate merge, stop-forwarding, stand-down, standby, reminders, booking codes, escalation brief, LLM toggle) are part of the base, not this file.
 
@@ -38,7 +38,7 @@ Utilities (duplicate merge, stop-forwarding, stand-down, standby, reminders, boo
 
 - "Why?" button: replaced by the decision summaries, which already state the trade-off.
 - Recurring patients: medium size and not needed to prove the core; pitch as "what's next".
-- Mission-control view: frontend-only polish with a map; no time in the 8 h schedule.
+- Mission-control view: frontend-only polish with a map; not needed to prove the core.
 - Shortage nudges: repeated shortages at a centre → suggest a donation drive to that centre, which approves it.
 - Donor reliability memory: learn who replies and shows up.
 - Voice-note replies.

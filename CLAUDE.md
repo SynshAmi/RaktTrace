@@ -6,10 +6,10 @@ RaktTrace is an agent that keeps working an urgent blood request until a blood c
 
 ## Start every session
 
-1. Read `docs/PROGRESS.md`: the current phase and the latest log lines.
+1. Read `docs/PROGRESS.md`: the current phase and step.
 2. Read `docs/SPEC.md`, the source of truth. If anything conflicts with it, SPEC wins.
-3. Read the current phase in `docs/BUILD.md` §6, and the docs it needs.
-4. Work on the `phase` branch. When the phase's *Done when* passes, tell the user it's ready to merge into `main`.
+3. Read the current step in `docs/IMPLEMENTATION_PLAN.md`, and the sections it references.
+4. Work on the `phase` branch. A phase is done only when its verification gate passes.
 5. Update `docs/PROGRESS.md` (status + one log line).
 
 ## Doc map
@@ -20,7 +20,8 @@ RaktTrace is an agent that keeps working an urgent blood request until a blood c
 | Users, screens, flows, statuses, message copy | `docs/PRODUCT.md` |
 | Loop, P, timing, planner, escalation, LLM jobs, baseline, simulation, benchmark, all numbers | `docs/AGENT.md` |
 | Medical and legal facts | `docs/DOMAIN_RULES.md` |
-| Stack, folders, data model, API, coding rules, git, phases | `docs/BUILD.md` |
+| Stack, folders, data model, API, interfaces, coding rules, phases, cut order | `docs/BUILD.md` |
+| Step-by-step plan and verification gates | `docs/IMPLEMENTATION_PLAN.md` |
 | Features after the base works | `docs/FEATURES.md` |
 | Pitch, demo script, Q&A | `docs/PITCH.md` |
 
@@ -32,6 +33,7 @@ RaktTrace is an agent that keeps working an urgent blood request until a blood c
 - **Don't invent medical facts.** Use `docs/DOMAIN_RULES.md`.
 - **Never crash the demo.** Telegram and LLM failures fall back (simulated channel, rule parser).
 - **Test what matters:** domain rules, planner, scenarios S1–S3.
+- **Tests are gates:** never proceed past a failing gate; never weaken a test to pass.
 - **No secrets or real personal data in git.**
 - **Features (`docs/FEATURES.md`) are locked** until phase 10 is DONE in PROGRESS.md.
 - **Frontend design is Aditya's.** Follow his structure and choices; don't restyle unless asked.

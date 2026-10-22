@@ -34,9 +34,9 @@ Versions: latest stable on the day, pinned by `uv.lock` and `package-lock.json`.
 
 ## 3. Git
 
-- Docs baseline lives on `main`.
-- For the build: **`main`** = verified code only; one working branch **`phase`**; merge into `main` when a phase's *Done when* passes, then carry on with the next phase on `phase`.
-- Local only, no remote until the event.
+- Local git only until the event.
+- **`main`** = verified code; one working branch **`phase`**; merge into `main` only after a phase's verification gate passes (`IMPLEMENTATION_PLAN.md`).
+- Create the GitHub repo and push on event day.
 - Commit messages: `phase 4: donor waves and promotion`.
 
 ## 4. Folder layout
@@ -60,7 +60,7 @@ rakttrace/
 │   │   ├── baseline/          # policy.py (today's workflow)
 │   │   ├── llm/               # client.py (chain) · reader.py (plea, reply, brief) · rules.py (fallback)
 │   │   ├── channels/          # router.py · telegram_bot.py · simulated.py
-│   │   ├── sim/               # world.py · scenarios.py · bots.py · benchmark.py · phrases.py · phrase_cache.json
+│   │   ├── sim/               # world.py · scenarios.py · bots.py · benchmark.py · phrases.json · phrase_cache.json
 │   │   └── api/               # requests.py · sim.py · demo.py · benchmark.py · llm.py
 │   ├── bench/                 # cached benchmark results: results_<regime>_<seed>.json
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
@@ -245,52 +245,61 @@ Message copy is rendered by `agent/messages.py`; channels only deliver.
 
 ## 6. Phases
 
-**Phase 0 (setup) is done before the event.** Phases 1–5 and 7 are core backend (Suryansh). Phase 6 is built by Aditya in parallel from hour 1, against §5.4. The frontend is scaffolded by Antigravity on mocks from hour 0 (`frontend/` only); Aditya then takes it over. Phases 8–9 wire the frontend to the real API. Phase 10 is the gate.
+### 6.1 Phases
 
-| Phase | Build | Done when |
-|---|---|---|
-| **0. Setup** | Telegram bot via BotFather (name, username, token, picture). A second Telegram account or group for "Centre B staff". LLM keys for each chain entry, each tested with one JSON call that reads "kal subah 8 baje aa jaunga". `.env` on both laptops. Python 3.12, uv, Node, git, Claude Code installed. | Bot replies to `/start` from a non-team phone; at least 2 LLM entries return valid JSON; `.env` complete |
-| **1. Foundation** | Project setup, `config.py`, `models.py`, store, sim clock + timer queue, seeded world generator (places, stock, donors), scenario loader | App starts; S1 loads; Step moves the clock; latent draws reproducible per seed; factor mean = 1.0; shared types and §5.4 stubs exist |
-| **2. Domain rules** | Compatibility, O− protection, eligibility E1–E11, travel time, timing checks, `donors_can_help` | Tests: compatibility table, 90/120-day rule, "PRBC can't make a 4 h deadline", "SDP can make 16 h" |
-| **3. Stock first** | P (sources + mixture posterior + DP), stock step, wait-or-invite rule, reservations with release of extras, decision log | Test: S1 → 0 donors, A 1 + B 1 reserved, SECURED. Posterior tests: prior at 0 replies; shifts up after yeses, down after explicit noes; silence weaker than a no; P_firm identical under all rates |
-| **4. Donors** | Ranking + filters, waves sized by expected cost (AGENT §5), rest rules, reply handling (button + rules reader), ACTIVE/STANDBY, TOO_LATE, promotion, booking codes, message templates | Test: S2 reaches SECURED via a promotion; "kal 11:55" counted as too late. Need-2 and need-3 requests invite > 0 donors; argmin matches a hand-computed table; higher τ never increases k*; target-unreachable case invites K (capped per wave); caps and O− hold; re-plan is idempotent; S2: 0 invites at t = 0, then 1 ACTIVE + 2 STANDBY = COVERED |
-| **5. Closing + escalation** | SECURED/FULFILLED, stand-down, family messages, staff reminders, L1/L2/FAILED, call list, duplicate merge, cancel | Tests: S1–S3 end to end; S3 has 0 invites and L2 within 5 sim minutes |
-| **6. Telegram + LLM** | Against §5.4: bot (deep-link roles, inline buttons, free text), router (Telegram or sim), LLM chain client, plea reader, reply reader, brief writer, toggle, fallbacks | A Telegram tap and a Hinglish reply move a request; the same works with the LLM off; killing the network doesn't crash anything |
-| **7. Baseline, benchmark, API** | Today's-workflow policy, phrase bank + cache, benchmark, every endpoint in §5.3 | Essential benchmark tier (today vs rakttrace, common random numbers) returns both metric sets with paired 95% CIs; results cached to `backend/bench/`; every endpoint matches its shape. Optional tiers (AGENT §10): broadcast, threshold, stress regime, calibration |
-| **8. Frontend core** | Request view (two lanes, gauge, ladder, decision log), controls (reset, step, advance, auto) | S1 runs from the dashboard with both lanes updating |
-| **9. Frontend finish** | New request (paste → draft → confirm), phones panel, escalation banner + brief, LLM toggle, benchmark page, phone-width layout | S2 runs fully from the dashboard with a real Telegram donor and staff |
-| **10. Rehearsal (gate)** | Full demo from `PITCH.md` §2 | One clean run with no code changes; recorded as the backup video |
+| Phase | Goal | Done when | Owner |
+|---|---|---|---|
+| **0. Setup** | Bot, staff chat, LLM keys, `.env`, tools, phrase bank | Bot replies to `/start` from a non-team phone; at least 2 LLM entries return valid JSON; `.env` complete; `phrases.json` valid with the exact counts | both (phrase bank: Antigravity) |
+| **1. Foundation** | App skeleton, config, models, store, clock, seeded world, scenarios | App starts; S1 loads; Step moves the clock; latent draws reproducible per seed; factor mean = 1.0; shared types and §5.4 stubs exist | Suryansh |
+| **2. Domain rules** | Compatibility, eligibility, travel and timing checks | Tests: compatibility table, 90/120-day rule, "PRBC can't make a 4 h deadline", "SDP can make 16 h" | Suryansh |
+| **3. Stock first** | P (mixture posterior + DP) and the stock step | S1 → 0 donors, A 1 + B 1 reserved, SECURED. Posterior: prior at 0 replies; shifts up after yeses, down after explicit noes; silence weaker than a no; P_firm identical under all rates | Suryansh |
+| **4. Donors** | Ranking, expected-cost waves, replies, roles, promotion | S2 reaches SECURED via a promotion; "kal 11:55" counted as too late. Need-2 and need-3 requests invite > 0 donors; argmin matches a hand-computed table; higher τ never increases k*; target-unreachable case invites K (capped per wave); caps and O− hold; re-plan is idempotent; S2: 0 invites at t = 0; first wave = min(k*, `WAVE_CAP`) as computed by the planner, which is 10 in S2 (P after the wave reported, not asserted); then 1 ACTIVE + 2 STANDBY = COVERED | Suryansh |
+| **5. Closing + escalation** | SECURED/FULFILLED, stand-down, reminders, L1/L2/FAILED, merge, cancel | S1–S3 end to end; S3 has 0 invites and L2 within 5 sim minutes | Suryansh |
+| **6. Telegram + LLM** | Bot, router and LLM chain against §5.4 | A Telegram tap and a Hinglish reply reach `loop.handle_inbound` and move a request; the same works with the LLM off; killing the network doesn't crash anything | Aditya (can start once phase 1's shared types and §5.4 stubs exist) |
+| **7. Baseline, benchmark, API** | Today's-workflow lane, essential benchmark, every §5.3 endpoint | Essential benchmark tier (today vs rakttrace, common random numbers) returns both metric sets with paired 95% CIs; results cached to `backend/bench/`; every endpoint matches its shape. Optional tiers (AGENT §10) come after phase 10 | Suryansh |
+| **8. Frontend core** | Request view and controls on the live API | S1 runs from the dashboard with both lanes updating | Aditya (scaffold: Antigravity on mocks, `frontend/` only) |
+| **9. Frontend finish** | New request, phones, banner, LLM toggle, benchmark page | S2 runs fully from the dashboard with a real Telegram donor and staff | Aditya |
+| **10. Rehearsal (gate)** | Full demo from `PITCH.md` §2 | One clean run with no code changes; recorded as the backup video | both |
 
-After phase 10: `FEATURES.md`, in order. Each feature merges only if S1–S3 and the benchmark still work.
+### 6.2 Target effort (not a commitment)
 
-**Schedule (8 h)** — core | parallel:
+Target: about 8 hours of focused build. Work may start before the event, locally. Sizes: S ≈ ½ h, M ≈ 1 h, L ≈ 1½ h.
 
-| Time | Core (Suryansh) | Parallel (Aditya / Antigravity) |
-|---|---|---|
-| 0:00–0:45 | Phase 1 | Phase 6 bot + frontend scaffold |
-| 0:45–1:30 | Phase 2 | Phase 6 LLM |
-| 1:30–2:45 | Phase 3 | Phase 6 finish |
-| 2:45–4:00 | Phase 4 | Frontend views |
-| 4:00–4:45 | Phase 5 | Frontend form, phones, benchmark |
-| 4:45–5:45 | Phase 7 | Wire frontend |
-| 5:45–6:45 | Integration | Integration |
-| 6:45–7:15 | Rehearsal gate + backup video | |
-| 7:15–8:00 | Optional benchmark tiers, or Break-it, or buffer | |
+| Order | Core path | Size | In parallel |
+|---|---|---|---|
+| 1 | Phase 0 | S (mostly manual) | — |
+| 2 | Phase 1 | M | Frontend scaffold on mocks |
+| 3 | Phase 2 | S | Phase 6 (L) |
+| 4 | Phase 3 | M | Phase 6 |
+| 5 | Phase 4 | L | Phase 8 views on mocks |
+| 6 | Phase 5 | M | Phase 9 screens on mocks |
+| 7 | Phase 7 | M | Phases 8–9 wired to the live API |
+| 8 | Integration | M | Integration |
+| 9 | Phase 10 | S | — |
 
-**Cut lines:**
-- 4:00: if the expected-cost wave sizing isn't passing, set `SIZING = "target"` (the mixture P stays).
-- 5:45: freeze the benchmark at the completed tier.
+### 6.3 Cut triggers (milestone-based)
 
-**If behind schedule, cut in this order:**
+- Phase 4 wave-sizing tests still failing after two fix cycles → set `SIZING = "target"` (the mixture P stays), log it in PROGRESS, continue.
+- Benchmark: build the essential tier first; add the should/optional tiers only after phase 10 passes.
+- Stock-wait lookahead (`WAIT_RULE = "lookahead"`) only after phase 10 passes.
+- If integration or rehearsal is at risk, freeze the benchmark at the completed tier.
+
+### 6.4 Cut order
+
+If behind, cut in this order:
 1. optional benchmark tiers;
 2. stock-wait lookahead;
 3. auto-play;
-2. benchmark split by product;
-3. phone-width layout;
-4. brief by LLM (use the template instead);
-5. plea parsing by LLM (use the form).
+4. benchmark split by product;
+5. phone-width layout;
+6. brief by LLM (use the template instead);
+7. plea parsing by LLM (use the form).
 
 Never cut anything on the SPEC's never-cut list.
+
+### 6.5 Plan
+
+The executable steps and verification gates are in `IMPLEMENTATION_PLAN.md`.
 
 ## 7. Running
 

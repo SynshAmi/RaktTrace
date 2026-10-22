@@ -9,8 +9,9 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 | | |
 |---|---|
 | Current phase | 0 (setup) |
+| Current step | 0.1 |
 | Branch state | `main` = — · `phase` = — |
-| Prebuild allowed? | Pending organiser reply (default: no project code) |
+| Prebuild | Local coding allowed, no push before event |
 | Build start / end | `__:__` / `__:__` |
 | LLM chain (after phase 0 tests) | `________` |
 
@@ -62,3 +63,5 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 
 - 22 Oct · docs · both · Final doc set created (SPEC, PRODUCT, AGENT, DOMAIN_RULES, BUILD, FEATURES, PITCH, PROGRESS, CLAUDE.md, README).
 - 23 Oct · docs · Suryansh · docs: final design D1–D5 applied.
+- 23 Oct · docs · Suryansh · docs: IMPLEMENTATION_PLAN.md created; BUILD §6 slimmed.
+- 23 Oct · docs · Suryansh · docs v1.0 locked.

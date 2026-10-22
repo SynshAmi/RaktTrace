@@ -62,7 +62,7 @@ If time is short: steps 1, 3, 4, 7, 8, 10.
 | Is this an agent or a script? | "It's a goal-driven loop that replans on every event. A wrong listing, silence, a 'tomorrow' reply or a deferral all change its path. A script does the same steps every time." |
 | Why doesn't the LLM make the decisions? | "Because then nobody could test or explain who got messaged or why a request closed. The LLM does what code can't: read messy Hinglish and write a handover. Decisions stay auditable." |
 | Why no LangChain or LangGraph? | "Our LLM jobs are three JSON calls with a fallback. A framework would add weight without adding capability." |
-| Where do your numbers come from? | "Testing times and donor rules come from Indian regulations and reports. Donor behaviour is an assumption, so we tested a range of values. The benchmark runs live on a synthetic city." |
+| Where do your numbers come from? | "Testing times and donor rules come from Indian regulations and reports. Donor behaviour is an assumption, labelled as one in our config; the world varies it from request to request. The benchmark runs live on a synthetic city." |
 | What if staff forget to tap? | "One reminder, then the coordinator is alerted. It never assumes success." |
 | Isn't this extra work for staff? | "Two or three taps per donor, and fewer calls from families asking whether their donor has come." |
 | Does the AI decide medical eligibility? | "No. It checks published rules like donation intervals before inviting. Screening is always the blood centre's call." |
