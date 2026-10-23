@@ -90,15 +90,26 @@ Pass: all green (otherwise the cut trigger in BUILD §6.3).
 
 **5.V** Tests: S1, S2, S3 end to end; S3 has 0 invites and L2 within 5 sim minutes, FAILED at the deadline; overdue staff tap → reminder, then L2; duplicate → `merged_into`; cancel releases holds and donors. Pass: all green.
 
-## Phase 6: Telegram and LLM (Aditya; BUILD §5.4, AGENT §7; can run in parallel after phase 1)
+## Phase 6: Telegram and LLM (Aditya; live identity registry: core; BUILD §5.4, PRODUCT §2.2, AGENT §7)
+
+Starts only after the pre-phase-6 audit fixes (C1–C7) are merged.
 
 - **6.1** LLM client chain (timeout; 429 / 5xx / bad JSON → next; all fail → rules); `set_enabled` / `status`; rules reader; `read_plea` / `read_reply` / `write_brief` returning `PleaDraft` / `ReplyRead` / str; never raise.
-- **6.2** `router.deliver` (Telegram or sim; failed sends mirror to the sim inbox); `telegram_bot` (long polling; `/start` deep links → `loop.link_chat`; buttons and free text → `Inbound` → `loop.handle_inbound`).
+- **6.2** `router.deliver` (Telegram or sim; failed sends mirror to the sim inbox); `telegram_bot` (long polling; `/start` onboarding with two choices, **Join the live demo** and **Create my profile** (fixed-button Q&A), both calling `register_donor`; `staff_<centre_id>` / `family` / `coord` deep links → `loop.link_chat` in private chat; buttons and free text → `Inbound` → `loop.handle_inbound`).
+- **6.4** Core (Suryansh): the live identity registry outside `AppState` (PRODUCT §2.2, BUILD §5.4): one identity per account, S2 donor templates (5–10, reused, not a cap), one role per chat, reset keeps identities and opt-out but clears scenario history, live donors added to the rakttrace lane only (the today's-workflow lane never messages real people).
 - **6.3** `phrase_cache.json`: run the LLM once over `phrases.json`; offline tests use the cache.
 
 **6.V**
 - Tests: rules-reader accuracy on the phrase bank reported; LLM (cached) ≥ rules; network off → no exception, fallback used; LLM toggle off → `read_by = "rules"`.
 - Manual: a `/start` donor link, a button tap and a Hinglish free-text reply reach `handle_inbound`; once phase 4 is merged, they move a request, with the LLM on and off.
+- Live-identity tests (phase 6 acceptance; none exist yet):
+  - linking the same Telegram account twice creates one identity; repeated `/start` resumes it; a half-finished Q&A restarts safely;
+  - reset keeps identity and profile but clears scenario history; STOP survives a reset;
+  - live donors never get simulated replies;
+  - an S2 template donor can be invited through normal planner decisions; live donors are never invited in S1 or S3;
+  - a donor who joins mid-scenario is considered only from the next wave the planner sends;
+  - an ineligible custom profile is never invited;
+  - switching a chat to the staff role removes it from the donor pool.
 
 Pass: all green + manual checks noted in PROGRESS.
 
@@ -107,6 +118,7 @@ Pass: all green + manual checks noted in PROGRESS.
 - **7.1** Today's-workflow policy on a lane copy; truth at the deadline.
 - **7.2** Benchmark essential tier: common random numbers, today vs rakttrace, essential metrics, paired 95% CIs, cache to `backend/bench/`. The should/optional tiers come after phase 10 (BUILD §6.3).
 - **7.3** Every BUILD §5.3 endpoint (requests, baseline, decisions, sim phones, demo controls, llm, benchmark).
+- **7.4** New requests and reset: a request made through `POST /requests` gets its own deterministic synthetic outcomes (donor latents, staff delays) keyed by its request id, and its timers; it never inherits another request's scenario script or outcomes. `POST /demo/reset` rebuilds the world and includes the currently linked live donors (PRODUCT §2.2).
 
 **7.V** Tests:
 - same seed → identical results;
@@ -115,6 +127,7 @@ Pass: all green + manual checks noted in PROGRESS.
 - paired CIs present; results file written to `backend/bench/`;
 - S1 baseline SAYS_FULFILLED with 1 of 2 ready; S2 baseline SAYS_FULFILLED with 0 of 1;
 - each endpoint matches its §5.3 shape;
+- a request created during a scenario gets its own reproducible outcomes and never the scenario's script; reset clears scenario history and keeps live identities;
 - benchmark runtime recorded in PROGRESS.
 
 Pass: all green.

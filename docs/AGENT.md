@@ -193,12 +193,14 @@ Runs after every event, in this order.
 
 `FULFILLED`, `FAILED` and `CANCELLED` are final.
 
-**Step 2: Stock.** If stock alone isn't ≥ 0.9 likely and there are un-asked compatible centres in radius:
-- ask the next centre (exact group → fresher → nearer) for `min(listed, need − units_reserved)`. Pending asks are **not** subtracted, so several centres can be asked for the same units in parallel; extras are released on confirmation;
+**Step 2: Stock.** If stock alone isn't ≥ 0.9 likely and there are askable compatible centres in radius:
+- ask the next centre (exact group → fresher → nearer) for `min(units left in its listing, need − units_reserved)`. Pending asks are **not** subtracted, so several centres can be asked for the same units in parallel; extras are released on confirmation;
 - repeat until stock alone looks ≥ 0.9 likely or no centres are left;
 - O− stock for a non-O− patient only after L2.
 
 Reservations are kept in the order they arrive. If a reservation brings more units than are still needed, keep only what's needed (e.g. "Reserve 2" when 1 is needed → 1 reserved). Once the need is covered, release every pending ask.
+
+**Askable centres.** A centre is not asked (again) for this request while it has an active ask or hold (`PENDING`, `RESERVED`, `READY`), after it answered None, or after its ask expired unanswered. A hold we released as not needed, or a reserved unit staff marked Failed testing, does not block another ask: while units are still needed and its listing has units this request hasn't used (listed − units already reserved from it), the centre can be asked again. No stock is asked once the request is `SECURED` or closed.
 
 **Step 3: Wait or invite.**
 - If stock replies are pending and, after `STOCK_REPLY_TIMEOUT_MIN`, the go window would still be ≥ `WAIT_SLACK_MIN`: **wait**. Pending stock counts as p = 1 for this decision, so no donors are bothered yet.
@@ -249,6 +251,7 @@ Standby buttons: **OK** = `OK` (no change), **Not available** = `CANT` → `RELE
 - Schedule `staff_ready` at each unit's ready time.
 - When every unit is `READY` → `FULFILLED`, send `family_fulfilled`.
 - `FAILED_TEST` reopens the gap.
+- A reserved stock unit marked Failed testing becomes `NONE` (reservations have no failed status). It no longer counts as usable, certain or ready supply; the request drops out of `SECURED`, and Step 2 may ask again (askable centres above).
 
 **Step 7: Escalate** (§6).
 
@@ -290,9 +293,11 @@ Levels only go up.
 
 | Level | When | What |
 |---|---|---|
-| **L1 Widen** | Nothing left to try at the current radius: no stock left to ask **and** (donors can't help **or** `pool_exhausted`), and P < 0.9 | Jump to the smallest radius in `SEARCH_RADII_KM` that adds any candidate centre or donor (40 km if none); re-run the planner at once. |
+| **L1 Widen** | Nothing left to try at the current radius: no stock answer awaited and no centre left to ask **and** (donors can't help **or** `pool_exhausted`), and P < 0.9 | Jump to the smallest radius in `SEARCH_RADII_KM` that adds any candidate centre or donor (40 km if none); re-run the planner at once. |
 | **L2 Alert** | Any of:<br>• `P_best < ESCALATE_P`<br>• ≥ 50% of the window gone and P < `HALFTIME_ESCALATE_P`<br>• at 40 km and P < 0.9<br>• a staff tap overdue by `2 × STAFF_GRACE_MIN` | LLM writes the brief (§7.3). `coord_alert` with the brief + call list (3 nearest centres listing any compatible units, including ones already asked). O− unlocked. Red banner. |
 | **FAILED** | Deadline passed, ready units < need | `coord_failed` summary; standby donors released |
+
+Note: `SECURED` is not `FULFILLED`. Only staff tapping Ready for patient makes a unit ready. If confirmations are missing, staff get a reminder at expected + `STAFF_GRACE_MIN` and the coordinator an L2 alert at + 2 × `STAFF_GRACE_MIN`; at the deadline the request is `FAILED` and `coord_failed` reports only the confirmed units ("Ready: x of n").
 
 Note: P_best uses the mixture (§3.3), so it can be slightly higher than before when odds are low; the benchmark checks warned_early doesn't drop.
 

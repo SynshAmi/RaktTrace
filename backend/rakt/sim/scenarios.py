@@ -150,4 +150,5 @@ def load_scenario(scenario_id: str) -> AppState:
     )
     return AppState(
         clock=Clock(scenario.now), lanes=split_lanes(store), draws={request.id: draws}, scenario=scenario,
+        scenario_request_id=request.id,
     )

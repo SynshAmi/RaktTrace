@@ -135,16 +135,42 @@ def status_for(store: Store, request: Request, now: datetime, p_firm: float) -> 
 
 # --- Step 2: stock first ---
 
+ACTIVE_STOCK = {ReservationStatus.PENDING, ReservationStatus.RESERVED, ReservationStatus.READY}
+
+
+def blocked_centres(store: Store, request: Request) -> set[str]:
+    """Centres not to ask (again) for this request: an active hold, an explicit "none", or no answer.
+    A hold we released, or a reserved unit that failed testing, doesn't block another ask."""
+    blocked = set()
+    for r in store.reservations.values():
+        if r.request_id != request.id:
+            continue
+        declined = r.status == ReservationStatus.NONE and r.id not in store.failed_reservations
+        if r.status in ACTIVE_STOCK or declined or r.status == ReservationStatus.EXPIRED:
+            blocked.add(r.centre_id)
+    return blocked
+
+
+def units_used(store: Store, request: Request, centre_id: str, group: BloodGroup) -> int:
+    """Units this request already took from a listing (reserved, ready, or reserved and then failed)."""
+    return sum(r.units_reserved for r in store.reservations.values()
+               if r.request_id == request.id and (r.centre_id, r.group) == (centre_id, group))
+
+
+def units_left(store: Store, request: Request, listing: Stock) -> int:
+    return listing.listed_units - units_used(store, request, listing.centre_id, listing.group)
+
+
 def stock_candidates(store: Store, request: Request, radius_km: float | None = None) -> list[Stock]:
-    """Un-asked compatible listings in radius, exact group → fresher → nearer; one ask per centre."""
+    """Askable compatible listings in radius, exact group → fresher → nearer; one ask per centre."""
     radius = request.radius_km if radius_km is None else radius_km
     groups = compatible_groups(request.group, request.product, request.escalation_level)
     hospital = store.hospitals[request.hospital_id]
-    asked = {r.centre_id for r in store.reservations.values() if r.request_id == request.id}
+    blocked = blocked_centres(store, request)
     listings = [
         s for s in store.stock
-        if s.product == request.product and s.group in groups and s.listed_units > 0
-        and s.centre_id not in asked and km(store.centres[s.centre_id], hospital) <= radius
+        if s.product == request.product and s.group in groups and units_left(store, request, s) > 0
+        and s.centre_id not in blocked and km(store.centres[s.centre_id], hospital) <= radius
     ]
     listings.sort(key=lambda s: (groups.index(s.group), -s.listed_at.timestamp(),
                                  km(store.centres[s.centre_id], hospital), s.centre_id))
@@ -173,7 +199,8 @@ def plan_stock(store: Store, request: Request, now: datetime) -> list[AskStock]:
     for listing in stock_candidates(store, request):
         if p_at_least(sources, request.units) >= config.TARGET_P or to_ask <= 0:
             break
-        ask = AskStock(listing.centre_id, listing.group, min(listing.listed_units, to_ask), listing.listed_at)
+        ask = AskStock(listing.centre_id, listing.group, min(units_left(store, request, listing), to_ask),
+                       listing.listed_at)
         asks.append(ask)
         sources.append(ask_source(store, request, ask, now))
     return asks
@@ -401,9 +428,11 @@ def plan_escalation(store: Store, request: Request, now: datetime, asks: list[As
                     pool_exhausted: bool) -> list[Action]:
     asked_now = {a.centre_id for a in asks}
     hospital = store.hospitals[request.hospital_id]
+    awaiting = bool(asks) or any(r.request_id == request.id and r.status == ReservationStatus.PENDING
+                                 for r in store.reservations.values())
     view = escalation.View(
         p=p_after,
-        stock_left=any(c.centre_id not in asked_now for c in stock_candidates(store, request)),
+        stock_left=awaiting or any(c.centre_id not in asked_now for c in stock_candidates(store, request)),
         stock_at=lambda radius: any(c.centre_id not in asked_now for c in stock_candidates(store, request, radius)),
         centre=donor_centre(store, request),
         donors_can_help=donors_can_help(hospital, list(store.centres.values()), request.product, now,

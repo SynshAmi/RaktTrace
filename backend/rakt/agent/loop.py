@@ -612,7 +612,9 @@ def ready_tap(target: str, target_id: str, choice: str, sender_id: str) -> None:
     if target == "P" and item.status == S.COLLECTED:
         item.status = S.READY if choice == "READY" else S.FAILED_TEST
     elif target == "R" and item.status == R.RESERVED:
-        item.status = R.READY if choice == "READY" else R.NONE  # a reserved unit that fails can't be used
+        item.status = R.READY if choice == "READY" else R.NONE  # a failed unit is no longer usable supply
+        if choice == "FAILED":
+            s.failed_reservations.add(item.id)  # not a "none" answer: the centre may be asked for another unit
     else:
         return
     clear_overdue(request.id, target_id)

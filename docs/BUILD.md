@@ -251,6 +251,15 @@ status() -> {enabled: bool, chain: [{name, healthy}]}     # same shape as GET /a
 
 Message copy is rendered by `agent/messages.py`; channels only deliver.
 
+**Live identities (phase 6, core-owned; not built yet):**
+```python
+# a registry outside AppState: survives scenario resets, cleared on server restart
+link_chat(start_param, chat_id, display_name) -> str     # staff_<centre_id> | family | coord; one role per chat
+register_donor(chat_id, profile: DonorProfile) -> str     # both onboarding routes end here; returns the donor id
+DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("never" | "over_4_months" | "recent")
+```
+On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact), with fresh scenario history and their opt-out kept.
+
 **Ownership:**
 - core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);
 - `channels/` + `llm/` = Aditya;
@@ -270,7 +279,7 @@ Message copy is rendered by `agent/messages.py`; channels only deliver.
 | **3. Stock first** | P (mixture posterior + DP) and the stock step | S1 → 0 donors, A 1 + B 1 reserved, SECURED. Posterior: prior at 0 replies; shifts up after yeses, down after explicit noes; silence weaker than a no; P_firm identical under all rates | Suryansh |
 | **4. Donors** | Ranking, expected-cost waves, replies, roles, promotion | S2 reaches SECURED via a promotion; "kal 11:55" counted as too late. Need-2 and need-3 requests invite > 0 donors; argmin matches a hand-computed table; higher τ never increases k*; target-unreachable case invites K (capped per wave); caps and O− hold; re-plan is idempotent; S2: 0 invites at t = 0; first wave = min(k*, `WAVE_CAP`) as computed by the planner, which is 10 in S2 (P after the wave reported, not asserted); then 1 ACTIVE + 2 STANDBY = COVERED | Suryansh |
 | **5. Closing + escalation** | SECURED/FULFILLED, stand-down, reminders, L1/L2/FAILED, merge, cancel | S1–S3 end to end; S3 has 0 invites and L2 within 5 sim minutes | Suryansh |
-| **6. Telegram + LLM** | Bot, router and LLM chain against §5.4 | A Telegram tap and a Hinglish reply reach `loop.handle_inbound` and move a request; the same works with the LLM off; killing the network doesn't crash anything | Aditya (can start once phase 1's shared types and §5.4 stubs exist) |
+| **6. Telegram + LLM** | Bot (onboarding: join the live demo / create my profile; staff deep links), live identity registry, router and LLM chain against §5.4 | A Telegram tap and a Hinglish reply reach `loop.handle_inbound` and move a request; the same works with the LLM off; killing the network doesn't crash anything | Aditya (can start once phase 1's shared types and §5.4 stubs exist) |
 | **7. Baseline, benchmark, API** | Today's-workflow lane, essential benchmark, every §5.3 endpoint | Essential benchmark tier (today vs rakttrace, common random numbers) returns both metric sets with paired 95% CIs; results cached to `backend/bench/`; every endpoint matches its shape. Optional tiers (AGENT §10) come after phase 10 | Suryansh |
 | **8. Frontend core** | Request view and controls on the live API | S1 runs from the dashboard with both lanes updating | Aditya (scaffold: Antigravity on mocks, `frontend/` only) |
 | **9. Frontend finish** | New request, phones, banner, LLM toggle, benchmark page | S2 runs fully from the dashboard with a real Telegram donor and staff | Aditya |

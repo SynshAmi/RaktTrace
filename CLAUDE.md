@@ -48,8 +48,6 @@ cd backend && uv run pytest -q
 cd frontend && npm install && npm run dev
 ```
 
-## Section 5 — Git workflow
-
 ## Documentation maintenance — mandatory
 
 Documentation updates are part of every phase's definition of done.

@@ -31,6 +31,7 @@ class Store:
     decisions: list[Decision] = field(default_factory=list)
     baselines: dict[str, BaselineState] = field(default_factory=dict)
     promotions: dict[str, datetime] = field(default_factory=dict)  # standby pledge id → when asked to go now
+    failed_reservations: set[str] = field(default_factory=set)  # reserved units staff marked "Failed testing"
     notified: set[tuple[str, str]] = field(default_factory=set)  # (request id, what) already sent once
     overdue: set[tuple[str, str]] = field(default_factory=set)  # (request id, card) staff taps overdue
     call_lists: dict[str, list[dict]] = field(default_factory=dict)  # request id → L2 call list
@@ -51,6 +52,7 @@ class AppState:
     draws: dict[str, RequestDraws] = field(default_factory=dict)  # by request id; shared by every lane
     inbox: dict[str, list[Message]] = field(default_factory=dict)  # sim phone id → messages
     scenario: Scenario | None = None
+    scenario_request_id: str | None = None  # the one request the scenario's donor script applies to
     sim_latent: dict[str, DonorLatent] = field(default_factory=dict)  # pledge id → the sim donor's outcome
     message_seq: int = 0
 
