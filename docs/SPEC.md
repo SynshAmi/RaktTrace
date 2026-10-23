@@ -132,7 +132,7 @@ The benchmark's optional tiers come before these, and the stock-wait lookahead a
 | Exact event hours and judging format | About 8 hours of focused build (a target, not a commitment); 5-minute pitch + demo |
 | LLM chain order | Set after the Phase 0 key tests |
 
-Resolved: local coding before the event is allowed; nothing is pushed to GitHub before the event.
+Resolved (publishing, clarified by the organiser directly to the team; recorded 23 Oct 2026, the exact date of the clarification isn't recorded): we may develop, commit, push to GitHub and submit normally before the deadline. **Hard cutoff: 18:00 IST, 24 Oct 2026.** All development, commits, pushes and submission uploads must be done by then; after it, no commits, pushes or changes to the submitted project until judging is complete. This replaces the earlier no-push-before-the-event rule.
 
 ## 9. Change log
 
@@ -142,3 +142,4 @@ Resolved: local coding before the event is allowed; nothing is pushed to GitHub 
 - 23 Oct 2026: Docs v1.0 locked: S2 first-wave wording, phrases.json path, final consistency pass.
 - 23 Oct 2026 (phase 4, agreed): AGENT §7.2 rule reader: "kal/tomorrow + a time" counts as a YES signal, so a later-yes like "kal 11:55" reads as YES with that time and the planner marks it TOO_LATE when it can't make the deadline.
 - 23 Oct 2026 (pre-phase-5 audit, agreed): AGENT §2 now also lists STANDBY_PER_UNIT, PROMOTE_TIMEOUT_MIN, DEFAULT_DEFERRAL_DAYS, REPLY_LAG_MIN and MIN_GO_WINDOW_MIN (values unchanged, already in §4/§5 and DOMAIN_RULES E10).
+- 23 Oct 2026: publishing policy updated per the organiser's clarification (§8): normal pushes allowed; freeze at 18:00 IST, 24 Oct 2026.
