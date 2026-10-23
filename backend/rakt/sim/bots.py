@@ -6,9 +6,10 @@ Only sim contacts react; real Telegram people answer for themselves.
 from datetime import timedelta
 
 from rakt import config, store
+from rakt.config import settings
 from rakt.domain.geo import travel_min
-from rakt.models import Channel, Outgoing
-from rakt.sim.world import DonorLatent, load_phrases
+from rakt.models import Channel, Outgoing, Pledge, Product
+from rakt.sim.world import DonorLatent, load_phrases, rng_for
 
 PHRASES = {p["id"]: p["text"] for p in load_phrases()}
 
@@ -77,6 +78,18 @@ def latent_for(pledge_id: str) -> DonorLatent | None:
     return draws.donors.get(pledge.donor_id) if draws else None
 
 
+def is_live(pledge: Pledge) -> bool:
+    return store.state.main.donors[pledge.donor_id].telegram_demo
+
+
+def live_screening_passes(pledge: Pledge, product: Product) -> bool:
+    """A live donor has no simulated outcome, but a simulated centre still has to screen them: a fixed draw per
+    (seed, request, donor) at the product's pass rate, so a replay screens them the same way."""
+    state = store.state
+    seed = state.scenario.seed if state.scenario else settings.random_seed
+    return rng_for(seed, pledge.request_id, "screening", pledge.donor_id).random() < config.P_PASS[product]
+
+
 def answer_invite(outgoing: Outgoing) -> None:
     state = store.state
     pledge_id = target_id(outgoing)
@@ -100,18 +113,20 @@ def answer_promote(outgoing: Outgoing) -> None:
 
 
 def answer_incoming(outgoing: Outgoing) -> None:
-    """Centre staff tap Arrived when the donor walks in, or Didn't show once the grace period passes."""
+    """Centre staff tap Arrived when the donor walks in, or Didn't show once the grace period passes. A live
+    (Telegram) donor can't really travel in a demo, so the simulated centre checks them in at their travel time;
+    they can still tap Can't make it before then."""
     state = store.state
     s, now = state.main, state.clock.now
     pledge_id = target_id(outgoing)
     pledge, latent = s.pledges.get(pledge_id), state.sim_latent.get(pledge_id)
-    if pledge is None or latent is None:
+    if pledge is None or (latent is None and not is_live(pledge)):
         return
     request = s.requests[pledge.request_id]
     centre = s.centres[request.collection_centre_id]
     start = max(pledge.available_from or now, now)
     arrive_in = (start - now) / timedelta(minutes=1) + travel_min(s.donors[pledge.donor_id], centre)
-    if latent.will_show:
+    if latent is None or latent.will_show:
         later(arrive_in, centre.id, button_id=f"V:{pledge_id}:ARRIVED", request_id=request.id)
     else:
         later(arrive_in + config.STAFF_GRACE_MIN, centre.id, button_id=f"V:{pledge_id}:NOSHOW", request_id=request.id)
@@ -123,10 +138,11 @@ def answer_visit(outgoing: Outgoing) -> None:
     s = state.main
     pledge_id = target_id(outgoing)
     pledge, latent = s.pledges.get(pledge_id), state.sim_latent.get(pledge_id)
-    if pledge is None or latent is None:
+    if pledge is None or (latent is None and not is_live(pledge)):
         return
     request = s.requests[pledge.request_id]
-    choice = "COLLECTED" if latent.will_pass else "DEFERRED"
+    passes = latent.will_pass if latent else live_screening_passes(pledge, request.product)
+    choice = "COLLECTED" if passes else "DEFERRED"
     later(config.VISIT_MIN[request.product], request.collection_centre_id, button_id=f"V:{pledge_id}:{choice}",
           request_id=request.id)
 

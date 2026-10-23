@@ -44,7 +44,7 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 
 /** A labelled dot: the label carries the meaning, the dot only reinforces it. */
 function Signal({ state, label, short, title }: { state: "ok" | "off" | "down"; label: string; short: string; title: string }) {
-  const dot = state === "ok" ? "bg-accent-fill" : state === "down" ? "bg-danger-fill" : "border border-on-bar-muted";
+  const dot = state === "ok" ? "bg-[#e8d99a]" : state === "down" ? "bg-[#f07178]" : "border border-on-bar-muted";
   return (
     <span title={title} className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <span className={`inline-block h-2.5 w-2.5 rounded-full ${dot}`} aria-hidden />
@@ -108,7 +108,7 @@ export default function Controls(p: Props) {
   }, []);
 
   return (
-    <header ref={ref} className="sticky top-0 z-50 border-b-4 border-danger-fill bg-bar text-on-bar">
+    <header ref={ref} className="sticky top-0 z-50 border-b border-white/10 bg-bar text-on-bar">
       <div className="mx-auto flex max-w-420 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:gap-x-6 sm:px-6">
         <div className="mr-auto flex items-baseline gap-3">
           <span className="text-xl font-bold tracking-tight">RaktTrace</span>

@@ -101,7 +101,7 @@ export default function App() {
         }}
       />
       {(controlError || offline) && (
-        <p role="alert" className="bg-danger-fill px-4 py-2 text-on-danger sm:px-6">
+        <p role="alert" className="border-b border-danger bg-raise px-4 py-2 font-semibold text-danger sm:px-6">
           {controlError ?? `Can't reach the backend (${clock.error}). Showing the last state received; it may be out of date.`}
         </p>
       )}

@@ -456,7 +456,7 @@ def test_deferral_summary_follows_action_order_and_says_why():
     state, rid = start("s2_dengue_sdp")
     run_until(state, lambda: any(p.status == S.DEFERRED for p in pledges(state, rid)))
     decision = state.main.decisions[-1]
-    assert decision.trigger.endswith("DEFERRED")
+    assert decision.trigger.endswith("DEFERRED (simulated staff)")
     assert decision.actions[0].startswith("promote ") and decision.actions[1].startswith("invite wave 2")
     assert decision.summary.startswith("Asked standby ")
     assert "Invited 5 donors (P 79% → 90%), enough to reach 90%." in decision.summary

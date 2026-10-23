@@ -1,58 +1,50 @@
 @import "tailwindcss";
 
 /*
- * Brand palette: ink #171313 · oxblood #35191B · blood red #C62836 · cream #F4E8C9 · soft yellow #E8D99A.
- * Solid colours only, high contrast. Soft yellow = staff-confirmed / emphasis; blood red = urgent or failed;
- * cream = text and estimates. --danger is blood red lifted just enough to read as text on ink.
+ * Dark: near-black charcoal, white text, neutral greys. Light: the cream family, lightened, with dark text.
+ * Soft yellow (dark) / deep gold (light) marks only what staff confirmed. Red is text or outline only, for
+ * urgency and failure; it is never a background.
  */
 :root {
-  --bg: #171313;
-  --raise: #221b1b;
-  --bar: #35191b;
-  --line: #3d2f2d;
-  --line-strong: #6b5a50;
-  --text: #f4e8c9;
-  --muted: #e0d3b0;
-  --faint: #b8a985;
+  --bg: #0d0d0d;
+  --raise: #171717;
+  --bar: #141414;
+  --line: #262626;
+  --line-strong: #404040;
+  --text: #ffffff;
+  --muted: #b8b8b8;
+  --faint: #8f8f8f;
   --accent: #e8d99a;
-  --accent-fill: #e8d99a;
-  --on-accent: #171313;
-  --mark: #e8d99a; /* confirmed marks and rules: soft yellow on ink, oxblood on cream */
-  --on-mark: #171313;
+  --mark: #e8d99a;
+  --on-mark: #0d0d0d;
   --target: #e8d99a;
-  --danger: #ef4b57;
-  --danger-fill: #c62836;
-  --on-danger: #f4e8c9;
-  --gauge: #f4e8c9;
-  --on-bar: #f4e8c9;
-  --on-bar-muted: #e3cfa9;
+  --danger: #f07178;
+  --gauge: #ffffff;
+  --on-bar: #ffffff;
+  --on-bar-muted: #b8b8b8;
   --focus: #e8d99a;
   --header-h: 8rem;
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg: #f4e8c9;
-  --raise: #ecdcb2;
-  --bar: #35191b;
-  --line: #d6c499;
-  --line-strong: #9c8360;
-  --text: #171313;
-  --muted: #35191b;
-  --faint: #5e4540;
-  --accent: #35191b;
-  --accent-fill: #e8d99a;
-  --on-accent: #171313;
-  --mark: #35191b;
-  --on-mark: #f4e8c9;
-  --target: #171313;
-  --danger: #a81f2c;
-  --danger-fill: #c62836;
-  --on-danger: #f4e8c9;
-  --gauge: #35191b;
-  --on-bar: #f4e8c9;
-  --on-bar-muted: #e3cfa9;
-  --focus: #c62836;
+  --bg: #fbf5e6;
+  --raise: #f3ead3;
+  --bar: #1a1a1a;
+  --line: #ddd6c8;
+  --line-strong: #a8a29a;
+  --text: #111111;
+  --muted: #474747;
+  --faint: #6b6b6b;
+  --accent: #7a5d00;
+  --mark: #8a6a00;
+  --on-mark: #ffffff;
+  --target: #111111;
+  --danger: #b42318;
+  --gauge: #111111;
+  --on-bar: #ffffff;
+  --on-bar-muted: #c4c4c4;
+  --focus: #111111;
   color-scheme: light;
 }
 
@@ -67,14 +59,10 @@
   --color-muted: var(--muted);
   --color-faint: var(--faint);
   --color-accent: var(--accent);
-  --color-accent-fill: var(--accent-fill);
-  --color-on-accent: var(--on-accent);
   --color-mark: var(--mark);
   --color-on-mark: var(--on-mark);
   --color-target: var(--target);
   --color-danger: var(--danger);
-  --color-danger-fill: var(--danger-fill);
-  --color-on-danger: var(--on-danger);
   --color-gauge: var(--gauge);
   --color-on-bar: var(--on-bar);
   --color-on-bar-muted: var(--on-bar-muted);
@@ -98,7 +86,7 @@ body {
 }
 
 header :focus-visible {
-  outline-color: var(--accent-fill);
+  outline-color: #e8d99a;
 }
 
 select option {

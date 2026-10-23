@@ -58,7 +58,7 @@ export type RequestView = {
   product: string;
   units: number;
   hospital: { id: string; name: string; area: string };
-  collection_centre: { id: string; name: string } | null;
+  collection_centre: { id: string; name: string; staff: "telegram" | "simulated" } | null;
   created_at: string;
   deadline_at: string;
   now: string;

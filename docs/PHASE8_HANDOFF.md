@@ -43,7 +43,8 @@ Errors use `{"detail": ...}` with 404 / 409 / 422. All state changes, API or Tel
 
 ## 4. Telegram is optional
 
-- No Telegram at all: everything works; simulated staff and donors answer.
+- No Telegram at all: everything works; simulated staff and donors answer. Taps the simulated staff make are marked "(simulated staff)" in the decision log; `collection_centre.staff` says whether a centre is simulated or linked.
+- A live donor at a simulated centre: Yes → ACTIVE (booking code) → On my way (recorded and acknowledged, still ACTIVE) → checked in by the simulated staff at their travel time → screened (fixed draw; pass → collected, else deferred and a standby is called) → staff confirm ready → FULFILLED.
 - A judge taps **Join the live demo**: their donor appears in `donors[]` with `live: true`; they are invited only if the planner picks them. In S2, run the clock with **Step** during the live window and wait for their replies.
 - A judge opens `t.me/RaktTraceDemoBot?start=staff_c_a` (or `staff_c_b`): that centre's cards go to their phone; `/reset` hands the centre back to the simulated staff. The centre's sim phone in the dashboard can always tap as that centre (a fallback).
 - `/demo/reset` keeps linked people (donors, staff, family, coordinator) and gives them fresh history. A server restart forgets them.

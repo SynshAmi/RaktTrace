@@ -66,6 +66,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 **Live donors:**
 - Both routes end in the same core registration. Live donors join the real donor pool; the planner alone decides compatibility, timing, ranking and invitations. They rank 2nd among candidates that pass every filter (AGENT §5.1); nobody is guaranteed an invitation, and custom profiles may never be contacted.
 - A live donor never gets a simulated reply; simulated outcomes are switched off by the donor's live flag, not by the channel of a message.
+- At a centre run by the simulated staff, a live donor who said yes is checked in at their travel time (the demo can't wait for a real trip) and screened with a fixed draw at the product's pass rate, so a replay screens them the same way. **On my way** is recorded and acknowledged but is not arrival; **Can't make it** before check-in still counts as a no-show. A centre with linked staff is never acted for by the simulated staff. Every tap the simulated staff make is marked "(simulated staff)" in the decision log, and the request view says who staffs the collection centre (added 25 Oct 2026, phase 8).
 - S2 is the live donor scenario. S1 and S3 keep their rules: donors can't help there, so live donors are not invited. The bot never asks which scenario to join.
 - Joining while S2 runs adds the donor to the running pool without changing earlier decisions; they can be invited from the next wave the planner sends. The bot says: "You're in. You'll get a message only if a request needs someone like you." With no scenario running, they are registered but not told they joined a request.
 - During the live window S2 runs in Step mode, so the presenter can wait for judges' replies before advancing sim time.
@@ -186,6 +187,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 | `donor_not_needed` | Thank you! Enough donors are already lined up for {code}, so you're not needed this time. Stay rested for the next one 💙 | — |
 | `donor_stand_down` | Blood for {code} is arranged. You're not needed this time and stay rested for the next one. Thank you 💙 | — |
 | `donor_thanks_collected` | Thank you for donating today ❤️ You can donate again from {next_date}. | — |
+| `donor_checked_in` | {centre} has already checked you in. Thank you for coming 🙏 (On my way tapped after check-in; sent once) | — |
 | `donor_closed` | {code} is closed, so you're not needed for it any more. Thank you for being ready 💙 (sent on cancel, or when the deadline passes) | — |
 | `donor_unclear` | Sorry, I didn't get that. Please tap one of the buttons above 🙏 | — |
 

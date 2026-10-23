@@ -85,10 +85,16 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
         <span>{v.units} unit{v.units === 1 ? "" : "s"}</span>
         <span className="text-faint" aria-hidden>·</span>
         <span>{v.hospital.name}, {v.hospital.area}</span>
-        {v.collection_centre && <span className="text-muted">· collecting at {v.collection_centre.name}</span>}
+        {v.collection_centre && (
+          <span className="text-muted" title={v.collection_centre.staff === "simulated"
+            ? "No staff phone is linked, so simulated staff answer this centre's cards (marked \"simulated staff\" in the log)"
+            : "This centre's cards go to its linked Telegram staff"}>
+            · collecting at {v.collection_centre.name} ({v.collection_centre.staff === "simulated" ? "simulated staff" : "staff on Telegram"})
+          </span>
+        )}
         <span className="ml-auto font-bold">
           Deadline {when(v.deadline_at, v.now)}
-          <span className={`ml-2 ${left ? "text-accent" : "rounded bg-danger-fill px-2 text-on-danger"}`}>{left ?? "passed"}</span>
+          <span className={`ml-2 ${left ? "text-accent" : "text-danger"}`}>{left ?? "passed"}</span>
         </span>
       </div>
       {view.error && <p className="mt-3 text-sm text-danger">Couldn't refresh: {view.error}</p>}
@@ -103,7 +109,7 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
             </div>
             <p className="mt-3 max-w-3xl text-lg text-muted">{detail(v)}</p>
             {v.escalation.level > 0 && (
-              <p className="mt-3 inline-flex items-center gap-2 rounded bg-danger-fill px-3 py-1 font-semibold text-on-danger">
+              <p className="mt-3 inline-flex items-center gap-2 rounded border-2 border-danger px-3 py-1 font-semibold text-danger">
                 <span aria-hidden>!</span>
                 {ESCALATION[v.escalation.level] ?? `Escalation level ${v.escalation.level}.`}
               </p>

@@ -3,7 +3,7 @@ import { steps, type State } from "../workflow";
 
 function Dot({ state, ready }: { state: State; ready?: boolean }) {
   if (ready) return <span className="grid h-6 w-6 place-items-center rounded-full bg-mark text-sm font-bold text-on-mark">✓</span>;
-  if (state === "blocked") return <span className="grid h-6 w-6 place-items-center rounded-full bg-danger-fill text-sm font-bold text-on-danger">!</span>;
+  if (state === "blocked") return <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-danger text-sm font-bold text-danger">!</span>;
   const look = {
     done: "bg-text border-text",
     partial: "border-text bg-[linear-gradient(90deg,var(--text)_50%,transparent_50%)]",

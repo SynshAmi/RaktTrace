@@ -115,6 +115,7 @@ def donor_text(kind: str, request: Request, donor: Donor, **fields) -> Outgoing:
         "donor_stand_down": "Blood for {code} is arranged. You're not needed this time and stay rested for the next one. "
                             "Thank you 💙",
         "donor_closed": "{code} is closed, so you're not needed for it any more. Thank you for being ready 💙",
+        "donor_checked_in": "{centre} has already checked you in. Thank you for coming 🙏",
     }
     body = bodies[kind].format(code=request.id, deadline=when(request.deadline_at), **fields)
     return Outgoing(to=donor.contact, kind=kind, body=body, request_id=request.id)

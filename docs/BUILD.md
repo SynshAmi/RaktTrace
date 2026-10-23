@@ -162,7 +162,7 @@ POST /requests/{id}/cancel    → RequestView
 {
   "id": "RT-4821", "status": "OPEN", "group": "O_POS", "product": "SDP", "units": 1,
   "hospital": {"id": "h_city", "name": "City General Hospital", "area": "Jayanagar"},
-  "collection_centre": {"id": "c_b", "name": "Centre B"},
+  "collection_centre": {"id": "c_b", "name": "Centre B", "staff": "simulated"},   # or "telegram" (linked staff)
   "created_at": "...", "deadline_at": "...", "now": "...",
   "p": 0.91, "p_firm": 0.85, "target": 0.9,
   "units_ladder": {"found": 1, "said_yes": 1, "ready_in_time": 1, "collected_or_reserved": 0, "confirmed": 0},
