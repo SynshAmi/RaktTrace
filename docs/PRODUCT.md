@@ -39,6 +39,8 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - stock list and donor list;
    - decision log;
    - escalation banner with the LLM brief.
+
+   The Today's-workflow lane starts collapsed into a clearly labelled "Today's workflow · Compare" control and opens as a narrower side-by-side column (about 30%), so the presenter reveals the comparison when it matters (agreed by the team, 24 Oct 2026; both lanes stay on this screen, SPEC L-09). Its figures come only from `GET /requests/{id}/baseline`.
 3. **Phones panel:** list of simulated phones (donors, centres, family) → a chat view with tappable buttons and a text box.
 4. **Controls:**
    - scenario picker + Reset;

@@ -135,6 +135,7 @@ Pass: all green. Manual Telegram checks enabled by the demo clock (S2 stepped wi
 ## Phase 8: Frontend core (on the live API)
 
 - **8.1** Switch the Antigravity scaffold from mocks to the live API. Request view: two lanes, P gauge, unit ladder, decision log.
+  (24 Oct 2026: no mock scaffold existed, so `frontend/` was created directly on the live API.)
 - **8.2** Controls (reset, step, advance) and 2 s polling.
 
 **8.V** S1 runs from the dashboard and both lanes update; no console errors; `npm run build` succeeds.

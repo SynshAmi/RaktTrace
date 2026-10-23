@@ -81,7 +81,7 @@ rakttrace/
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
-    └── src/                   # pages: NewRequest, RequestView, Benchmark; components: Lane, Gauge, Ladder, DecisionLog, Phones, Controls
+    └── src/                   # api.ts (every call) · pages: NewRequest, RequestView, Benchmark; components: Lane, Gauge, Ladder, DecisionLog, Supply (donor/stock tabs), Baseline, Phones, Controls
 ```
 
 ## 5. Data model
@@ -289,7 +289,7 @@ Bot commands: `/start`, `/stop`, `/reset` (PRODUCT §2.2). Agent cards (`P:`, `R
 **Ownership:**
 - core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);
 - `channels/` + `llm/` = Aditya;
-- `frontend/` = Antigravity scaffold, then Aditya.
+- `frontend/` = Aditya (no mock scaffold was built; phase 8 started directly on the live API).
 
 `models.py` and `config.py` are changed by core only; everyone else imports them.
 

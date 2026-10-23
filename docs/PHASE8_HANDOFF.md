@@ -8,6 +8,8 @@ For Aditya. The backend for phases 1–7 is merged on `main`. The frontend talks
 cd backend && uv sync && uv run uvicorn rakt.main:app --host 127.0.0.1 --port 8000   # no --reload
 cd backend && uv run pytest -q                                                        # 295 tests, offline
 cd backend && uv run python -m rakt.sim.benchmark                                     # seed 2026, N = 500, ~25 s
+cd frontend && npm install && npm run dev                                             # dashboard on :5173, proxies /api
+cd frontend && npm run build                                                          # type-check + production build
 ```
 Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has a token. `GET /api/health` → `{"ok", "now", "llm": "on"|"off", "telegram": "ok"|"off"}`. Vite should proxy `/api` to `:8000`.
 

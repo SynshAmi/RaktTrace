@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* Aditya's palette: ink, oxblood, blood red, cream, soft yellow; green added for positive states. */
+:root {
+  --bg: #171313;
+  --surface: #1f1918;
+  --bar: #35191b;
+  --line: rgb(244 232 201 / 0.12);
+  --text: #f4e8c9;
+  --muted: rgb(244 232 201 / 0.62);
+  --faint: rgb(244 232 201 / 0.38);
+  --pos: #7fa97a;
+  --neg: #e0585f;
+  --neg-fill: #c62836;
+  --neu: #e8d99a;
+  --on-bar: #f4e8c9;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4e8c9;
+  --surface: #ecdcb6;
+  --bar: #35191b;
+  --line: rgb(23 19 19 / 0.14);
+  --text: #171313;
+  --muted: rgb(23 19 19 / 0.64);
+  --faint: rgb(23 19 19 / 0.42);
+  --pos: #2f6b3a;
+  --neg: #b0222f;
+  --neg-fill: #c62836;
+  --neu: #7a5c10;
+  --on-bar: #f4e8c9;
+  color-scheme: light;
+}
+
+@theme {
+  --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-bar: var(--bar);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-neg-fill: var(--neg-fill);
+  --color-neu: var(--neu);
+  --color-on-bar: var(--on-bar);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--neu);
+  outline-offset: 2px;
+}
