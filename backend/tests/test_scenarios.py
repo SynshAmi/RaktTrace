@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from rakt.models import BloodGroup, Product, RequestStatus
 from rakt.sim.scenarios import list_scenarios, load_scenario
-from rakt.sim.world import km_between
+from rakt.domain.geo import haversine_km
 
 
 def listing(state, centre_id, product, group):
@@ -65,7 +65,7 @@ def test_s2_loads():
     for donor in added:
         assert donor.group == BloodGroup.O_POS and donor.apheresis_ok and donor.consent and not donor.opted_out
         assert 18 <= donor.age <= 60 and donor.weight_kg >= 50 and donor.last_whole_blood_at is None
-        assert km_between((centre_b.lat, centre_b.lon), (donor.lat, donor.lon)) <= 3.01
+        assert haversine_km((centre_b.lat, centre_b.lon), (donor.lat, donor.lon)) <= 3.01
     assert all(d.id in state.draws[request.id].donors for d in added)
 
     script = state.scenario.donor_script
@@ -82,7 +82,7 @@ def test_s3_loads():
     for s in state.main.stock:
         if s.product == Product.PRBC and s.group == BloodGroup.O_NEG and s.listed_units > 0:
             centre = state.main.centres[s.centre_id]
-            assert km_between((hospital.lat, hospital.lon), (centre.lat, centre.lon)) > 40
+            assert haversine_km((hospital.lat, hospital.lon), (centre.lat, centre.lon)) > 40
 
 
 def test_lanes_are_independent_copies():
