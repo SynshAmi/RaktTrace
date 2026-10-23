@@ -1,0 +1,21 @@
+[project]
+name = "rakttrace"
+version = "0.1.0"
+description = "RaktTrace: an agent that works an urgent blood request until a blood centre confirms the units."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+    "pydantic-settings",
+]
+
+[dependency-groups]
+dev = ["pytest", "httpx"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
