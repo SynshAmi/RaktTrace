@@ -22,11 +22,11 @@
   "donor_script": [
     {"invite_order": 1, "says_yes": true, "reply_delay_min": 6, "phrase_id": "phrase_01", "will_show": true, "will_pass": false},
     {"invite_order": 2, "says_yes": true, "reply_delay_min": 9, "phrase_id": "phrase_05"},
-    {"invite_order": 3, "says_yes": true, "reply_delay_min": 12, "phrase_id": "phrase_12"},
+    {"invite_order": 3, "says_yes": true, "reply_delay_min": 12, "phrase_id": "phrase_08"},
     {"invite_order": 4, "says_yes": true, "is_later": true, "reply_delay_min": 14, "phrase_id": "phrase_16",
      "available_from": "2026-10-25T11:55:00+05:30"},
     {"invite_order": 5, "says_yes": false, "reply_delay_min": 18, "phrase_id": "phrase_23"},
-    {"invite_order": 6, "says_yes": false, "reply_delay_min": 20, "phrase_id": "phrase_26"},
+    {"invite_order": 6, "says_yes": false, "reply_delay_min": 20, "phrase_id": "phrase_30"},
     {"invite_order": 7, "says_yes": false},
     {"invite_order": 8, "says_yes": false},
     {"invite_order": 9, "says_yes": false},

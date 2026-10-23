@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from rakt.models import (
@@ -13,7 +14,7 @@ from rakt.models import (
 if TYPE_CHECKING:
     from rakt.clock import Clock
     from rakt.sim.scenarios import Scenario
-    from rakt.sim.world import RequestDraws
+    from rakt.sim.world import DonorLatent, RequestDraws
 
 LANES = ("rakttrace", "today")
 
@@ -29,6 +30,7 @@ class Store:
     pledges: dict[str, Pledge] = field(default_factory=dict)
     decisions: list[Decision] = field(default_factory=list)
     baselines: dict[str, BaselineState] = field(default_factory=dict)
+    promotions: dict[str, datetime] = field(default_factory=dict)  # standby pledge id → when asked to go now
     seq: dict[str, int] = field(default_factory=dict)
 
     def next_id(self, prefix: str) -> str:
@@ -46,6 +48,7 @@ class AppState:
     draws: dict[str, RequestDraws] = field(default_factory=dict)  # by request id; shared by every lane
     inbox: dict[str, list[Message]] = field(default_factory=dict)  # sim phone id → messages
     scenario: Scenario | None = None
+    sim_latent: dict[str, DonorLatent] = field(default_factory=dict)  # pledge id → the sim donor's outcome
     message_seq: int = 0
 
     @property

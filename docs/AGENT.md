@@ -337,7 +337,7 @@ Output:
 | NO | no, nahi, nahin, nai, not today, busy, नहीं |
 | YES | yes, haan, han, ha, ok, okay, sure, coming, aa raha, aa rahi, aaunga, aaungi, हाँ, जी |
 
-- "kal" / "tomorrow" + a time → `available_from`.
+- "kal" / "tomorrow" + a time → `available_from`. That time counts as a YES signal, so "kal 11:55 ke baad free hoon" reads as YES with `available_from` 11:55 tomorrow (with a NO word too, it is UNCLEAR).
 - Both YES and NO, or neither → UNCLEAR.
 
 Button taps never need reading.

@@ -41,6 +41,9 @@ MAX_ASKS_30D = 4  # Design
 QUIET_HOURS = {"start_h": 22, "end_h": 7, "min_hours_left": 24}  # Design: only for requests with > 24 h left
 SEARCH_RADII_KM = (5, 10, 20, 40)  # Design
 STAFF_GRACE_MIN = 30  # Design: reminder at expected time + 30; escalate at + 60
+STANDBY_PER_UNIT = 2  # AGENT §5 Step 4: standby donors < 2 × units needed from donors
+PROMOTE_TIMEOUT_MIN = 15  # AGENT §5 Step 5: a promoted standby with no answer in 15 min is released
+DEFAULT_DEFERRAL_DAYS = 30  # DOMAIN_RULES E10 (Design): deferral length when staff give no date
 
 # --- Timing ---
 TEST_MIN = {"PRBC": 720, "SDP": 360}  # Whole-blood testing reported 12–24 h; SDP is an assumption

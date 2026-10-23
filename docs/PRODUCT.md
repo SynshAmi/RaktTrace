@@ -156,6 +156,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 | `donor_promote` | {code}: we need you now. Can you reach {centre} by {latest_arrival}? | Going now · Can't |
 | `donor_too_late` | Thank you! This one is needed by {deadline}, so a donation at that time would be too late. We'll ask you next time. | — |
 | `donor_thanks_no` | No problem, thank you for replying. | — |
+| `donor_not_needed` | Thank you! Enough donors are already lined up for {code}, so you're not needed this time. Stay rested for the next one 💙 | — |
 | `donor_stand_down` | Blood for {code} is arranged. You're not needed this time and stay rested for the next one. Thank you 💙 | — |
 | `donor_thanks_collected` | Thank you for donating today ❤️ You can donate again from {next_date}. | — |
 | `donor_unclear` | Sorry, I didn't get that. Please tap one of the buttons above 🙏 | — |

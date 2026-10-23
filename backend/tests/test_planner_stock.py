@@ -233,6 +233,7 @@ def test_s2_asks_centre_a_first():
     state, rid = start("s2_dengue_sdp")
     res = by_centre(state, rid)
     assert set(res) == {"c_a"} and res["c_a"].units_asked == 1
-    run_all(state)
+    while res["c_a"].status == R.PENDING:
+        state.clock.step(loop.on_timer)
     assert res["c_a"].status == R.NONE  # A lists 1 but has 0
     assert state.main.requests[rid].status == RequestStatus.OPEN
