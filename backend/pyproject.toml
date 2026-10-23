@@ -8,6 +8,8 @@ dependencies = [
     "uvicorn[standard]",
     "pydantic>=2",
     "pydantic-settings",
+    "openai>=3.37.0",
+    "python-telegram-bot>=22.8",
 ]
 
 [dependency-groups]

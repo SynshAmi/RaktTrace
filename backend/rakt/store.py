@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -67,6 +68,7 @@ def split_lanes(store: Store, names: tuple[str, ...] = LANES) -> dict[str, Store
 
 
 state: AppState | None = None
+lock = threading.RLock()  # Telegram handlers run in a worker thread; every state change from outside holds this
 
 
 def set_state(new_state: AppState) -> None:

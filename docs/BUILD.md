@@ -71,11 +71,11 @@ rakttrace/
 │   │   ├── store.py           # in-memory state + lane copies
 │   │   ├── clock.py           # sim clock + timer queue
 │   │   ├── domain/            # blood.py · eligibility.py · geo.py · timing.py
-│   │   ├── agent/             # probability.py · ranking.py · planner.py · escalation.py · loop.py · messages.py
+│   │   ├── agent/             # probability.py · ranking.py · planner.py · escalation.py · loop.py · messages.py · live.py
 │   │   ├── baseline/          # policy.py (today's workflow)
-│   │   ├── llm/               # client.py (chain) · reader.py (plea, reply, brief) · rules.py (fallback)
+│   │   ├── llm/               # __init__.py (read_plea, read_reply, write_brief, toggle) · client.py (chain) · rules.py (fallback)
 │   │   ├── channels/          # router.py · telegram_bot.py · simulated.py
-│   │   ├── sim/               # world.py · scenarios.py · bots.py · benchmark.py · phrases.json · phrase_cache.json
+│   │   ├── sim/               # world.py · scenarios.py · bots.py · benchmark.py · phrases.json · phrase_cache.py (builds phrase_cache.json)
 │   │   └── api/               # requests.py · sim.py · demo.py · benchmark.py · llm.py
 │   ├── bench/                 # cached benchmark results: results_<regime>_<seed>.json
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
@@ -227,7 +227,7 @@ The frontend renders the optional parts only if present.
 | `V:{pledge_id}:ARRIVED` · `NOSHOW` · `COLLECTED` · `DEFERRED` | Staff, visit |
 | `D:P:{pledge_id}:READY` · `FAILED`, `D:R:{reservation_id}:READY` · `FAILED` | Staff, ready |
 
-Simulated phones use the same ids.
+Simulated phones use the same ids. Onboarding buttons are bot-only: `O:JOIN` · `O:CREATE` and `Q:{step}:{value}` (the profile questions); the bot handles them itself and never passes them to the loop.
 
 ### 5.4 Internal interfaces
 
@@ -251,14 +251,27 @@ status() -> {enabled: bool, chain: [{name, healthy}]}     # same shape as GET /a
 
 Message copy is rendered by `agent/messages.py`; channels only deliver.
 
-**Live identities (phase 6, core-owned; not built yet):**
+**Live identities (`agent/live.py`, core-owned):**
 ```python
 # a registry outside AppState: survives scenario resets, cleared on server restart
 link_chat(start_param, chat_id, display_name) -> str     # staff_<centre_id> | family | coord; one role per chat
-register_donor(chat_id, profile: DonorProfile) -> str     # both onboarding routes end here; returns the donor id
-DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("never" | "over_4_months" | "recent")
+register_donor(chat_id, name, profile: DonorProfile) -> str   # both onboarding routes end here; returns the donor id
+join_demo(chat_id, name) -> (donor_id, resumed)          # the next S2 template, or the profile already registered
+opt_out(chat_id)                                         # STOP: kept across resets until the person re-joins
+forget_donor(chat_id) -> donor_id | None                 # /reset: drop the donor association (STOP untouched)
+loop.reset_donor(chat_id) -> bool                        # /reset: withdraw from open requests (ACTIVE → NO_SHOW,
+                                                         #   invited/standby → RELEASED), re-plan, old record never invited
+attach(state)                                            # after a scenario (re)load: re-add live donors, staff, family
+coordinator_contact() -> Contact                         # the linked coordinator chat, else the sim phone
+loop.reset_scenario(scenario_id)                         # load + attach + start (phase 7's reset endpoint calls it)
+DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("never" | "over_4_months" | "recent"),
+               lat?, lon?                                # set by the demo templates; otherwise the area's centre
 ```
-On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact), with fresh scenario history and their opt-out kept.
+On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact) in the rakttrace lane only, with fresh scenario history and their opt-out kept.
+
+Bot commands: `/start`, `/stop`, `/reset`. `uv run python -m rakt.sim.phrase_cache` builds `sim/phrase_cache.json` in one bounded pass (paced, stops at the first 429 or if quota headers are missing or too low); the cache is committed, so tests and benchmarks never call the API.
+
+Telegram handlers run the bot's logic in a worker thread holding `store.lock`; anything else that changes state from outside the clock (the phase 7 API) must hold it too.
 
 **Ownership:**
 - core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);

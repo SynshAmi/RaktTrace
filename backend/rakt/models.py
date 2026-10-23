@@ -134,6 +134,19 @@ class ReplyRead(BaseModel):
     read_by: ReadBy = "rules"
 
 
+class DonorProfile(BaseModel):
+    """Synthetic donor answers from Telegram onboarding (PRODUCT §2.2). Approximate area only, never an address."""
+    group: BloodGroup
+    area: str
+    sex: Literal["M", "F"] | None = None
+    age: int
+    weight_kg: int
+    apheresis_ok: bool = False
+    last_donation: Literal["never", "over_4_months", "recent"] = "never"
+    lat: float | None = None  # set by demo templates; otherwise the area's centre is used
+    lon: float | None = None
+
+
 # --- State ---
 
 class Hospital(BaseModel):
