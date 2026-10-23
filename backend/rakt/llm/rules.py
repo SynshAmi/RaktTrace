@@ -3,7 +3,7 @@
 import re
 from datetime import datetime, timedelta
 
-from rakt.models import Intent, ReplyRead
+from rakt.models import BloodGroup, Intent, PleaDraft, Product, ReplyRead
 
 STOP_WORDS = ["stop", "unsubscribe", "band karo", "बंद"]
 NO_WORDS = ["no", "nahi", "nahin", "nai", "not today", "busy", "नहीं"]
@@ -81,3 +81,47 @@ def brief_template(facts: dict) -> str:
         f"Missing: {facts['missing']} unit(s).",
         f"Next: {' · '.join(steps[:3])}.",
     ])
+
+
+# --- Pleas (AGENT §7.1 fallback) ---
+
+GROUP_PATTERN = re.compile(r"\b(ab|a|b|o)\s*(\+|-|−|pos(?:itive)?|neg(?:ative)?|\+ve|-ve)", re.IGNORECASE)
+UNITS_PATTERN = re.compile(r"\b(\d{1,2})\s*(?:units?|bottles?|pints?|bags?)\b", re.IGNORECASE)
+HOURS_PATTERN = re.compile(r"\b(?:in|within)\s+(\d{1,2})\s*(?:h|hrs?|hours?|ghante)\b", re.IGNORECASE)
+SDP_WORDS = ["platelet", "platelets", "sdp", "apheresis"]
+PRBC_WORDS = ["blood", "prbc", "red cell", "red cells", "khoon"]
+
+
+def plea_group(text: str) -> BloodGroup | None:
+    match = GROUP_PATTERN.search(text)
+    if not match:
+        return None
+    letters = match.group(1).upper()
+    sign = match.group(2).lower()
+    positive = sign in ("+", "pos", "positive", "+ve")
+    return BloodGroup(f"{letters}_{'POS' if positive else 'NEG'}")
+
+
+def plea_hospital(text: str, hospitals: list[dict]) -> str | None:
+    lowered = text.lower()
+    for h in hospitals:
+        name_words = [w for w in h["name"].lower().split() if w not in ("hospital", "medical", "centre", "center")]
+        if (name_words and " ".join(name_words) in lowered) or h["name"].lower() in lowered:
+            return h["id"]
+    return None
+
+
+def read_plea(text: str, hospitals: list[dict], now: datetime) -> PleaDraft:
+    lowered = (text or "").lower()
+    units = UNITS_PATTERN.search(lowered)
+    product = Product.SDP if has_any(lowered, SDP_WORDS) else Product.PRBC if has_any(lowered, PRBC_WORDS) else None
+    deadline = tomorrow_time(lowered, now)
+    hours = HOURS_PATTERN.search(lowered)
+    if deadline is None and hours:
+        deadline = now + timedelta(hours=int(hours.group(1)))
+    draft = PleaDraft(group=plea_group(text or ""), product=product, units=int(units.group(1)) if units else None,
+                      hospital_id=plea_hospital(text or "", hospitals), deadline_at=deadline, read_by="rules")
+    fields = ["group", "product", "units", "hospital_id", "deadline_at"]
+    draft.missing = [f for f in fields if getattr(draft, f) is None]
+    draft.confidence = round(1 - len(draft.missing) / len(fields), 2)
+    return draft

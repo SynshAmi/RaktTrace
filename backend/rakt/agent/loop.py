@@ -4,17 +4,18 @@ import random
 from datetime import datetime, timedelta
 
 from rakt import config, llm, store
-from rakt.agent import messages, planner
+from rakt.agent import live, messages, planner
 from rakt.agent.escalation import Alert, Fail, Widen
 from rakt.agent.planner import (
     ACTIVE_LIKE, AskStock, FixCentre, Invite, NotifyFamily, Plan, Promote, Release, SetStatus, StandDown,
 )
 from rakt.channels import router
 from rakt.clock import Timer
+from rakt.sim.scenarios import load_scenario
 from rakt.domain.geo import km, travel_min
 from rakt.domain.timing import donor_timing, stock_ready_at
 from rakt.models import (
-    BloodGroup, Button, Channel, Contact, Decision, Inbound, Intent, Message, Pledge, PledgeStatus, Product, ReplyRead,
+    BloodGroup, Button, Contact, Decision, Inbound, Intent, Message, Pledge, PledgeStatus, Product, ReplyRead,
     Request, RequestStatus, Reservation, ReservationStatus,
 )
 
@@ -22,7 +23,14 @@ R = ReservationStatus
 S = PledgeStatus
 AWAITING_REPLY = {S.INVITED, S.NO_REPLY}
 OPEN_STATUSES = {RequestStatus.OPEN, RequestStatus.COVERED, RequestStatus.SECURED}
-COORDINATOR = Contact(name="Coordinator", channel=Channel.SIM, phone="coordinator")
+
+
+def reset_scenario(scenario_id: str) -> None:
+    """A new world from the scenario, with every linked live identity attached (fresh history), then started."""
+    store.set_state(load_scenario(scenario_id))
+    live.attach(store.state)
+    for request_id in list(store.state.main.requests):
+        start(request_id)
 
 
 def start(request_id: str) -> None:
@@ -259,7 +267,7 @@ def alert(request: Request, action: Alert, p: float) -> None:
     request.brief = llm.write_brief(brief_facts(request, p, call_list))
     s.call_lists[request.id] = call_list
     s.notified.add((request.id, "alert"))
-    router.deliver(messages.coord_alert(request, COORDINATOR, p, request.brief, call_list))
+    router.deliver(messages.coord_alert(request, live.coordinator_contact(), p, request.brief, call_list))
 
 
 def fail(request: Request, action: Fail) -> None:
@@ -268,7 +276,7 @@ def fail(request: Request, action: Fail) -> None:
         return
     s.notified.add((request.id, "failed"))
     tried = brief_facts(request, 0.0, [])["tried"]
-    router.deliver(messages.coord_failed(request, COORDINATOR, action.ready, f"Tried: {tried}."))
+    router.deliver(messages.coord_failed(request, live.coordinator_contact(), action.ready, f"Tried: {tried}."))
 
 
 def expect_tap(request: Request, card: str, target: str, target_id: str, status: str, expected_at: datetime) -> None:
@@ -539,6 +547,8 @@ def donor_reply(pledge: Pledge, reading: ReplyRead, text: str | None) -> None:
     elif reading.intent == Intent.STOP:
         pledge.status = S.OPTED_OUT
         donor.opted_out = True
+        if donor.telegram_demo and donor.contact.chat_id:
+            live.opt_out(donor.contact.chat_id)  # kept across scenario resets
     else:
         pledge.available_from = reading.available_from
         role = planner.role_for_yes(s, request, pledge, now, reading.available_from)
@@ -636,4 +646,5 @@ def next_donation(donor, product: Product, at: datetime) -> datetime:
 
 
 def link_chat(start_param: str, chat_id: str, display_name: str) -> str:
-    return "RaktTrace: chat linking isn't available yet."
+    """staff_<centre_id> | family | coord deep links (BUILD §5.4)."""
+    return live.link_chat(start_param, chat_id, display_name)

@@ -68,10 +68,11 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 - During the live window S2 runs in Step mode, so the presenter can wait for judges' replies before advancing sim time.
 
 **Identity and reset:**
-- One Telegram account = one donor identity for the life of the server process. A repeated `/start` resumes it; a half-finished Q&A restarts from its first question.
+- One Telegram account = one donor identity for the life of the server process. A repeated `/start` resumes it; a half-finished Q&A restarts from its first question. "Prefer not to say" for sex means the stricter 120-day whole-blood interval applies.
 - A chat has one role at a time. Linking a private chat as centre staff detaches it from the donor pool. Group chats are not supported for staff.
-- A scenario reset keeps identities and profile answers, rebuilds the world with the currently linked live donors, and clears their scenario history (invites, pledges, deferrals, donations). STOP / opt-out is kept across resets.
+- A scenario reset keeps identities and profile answers, rebuilds the world with the currently linked live donors, and clears their scenario history (invites, pledges, deferrals, donations). STOP (a reply or `/stop`) is kept across resets until the person explicitly re-joins (Join the live demo or a finished profile).
 - The registry is in memory: a server restart clears it (including STOP), and participants re-join.
+- If the bot is off or Telegram can't be reached, messages for a live contact show on the dashboard's sim phone instead.
 - All profiles are synthetic; nothing collects a home address or real medical history, and the demo is not a verified donor registry. Screening stays with the blood centre.
 
 ## 3. Flows
