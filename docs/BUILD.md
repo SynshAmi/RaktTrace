@@ -39,6 +39,21 @@ Versions: latest stable on the day, pinned by `uv.lock` and `package-lock.json`.
 - Create the GitHub repo and push on event day.
 - Commit messages: `phase 4: donor waves and promotion`.
 
+## Documentation maintenance — mandatory
+
+Documentation updates are part of every phase's definition of done.
+
+For every phase:
+1. **`PROGRESS.md`** — Update the current phase and step, completed work, next phase, verification results, blockers or cuts, and a dated log entry. Never mark a phase complete until its verification gate passes.
+2. **`IMPLEMENTATION_PLAN.md`** — Keep the plan consistent with the implementation. Do not rewrite or reorder planned phases just to reflect partial progress. Change it only when an approved plan change is necessary.
+3. **`BUILD.md`** — Update implementation or setup instructions only when the actual workflow, commands, architecture, or interfaces have legitimately changed.
+4. **`AGENT.md` and `SPEC.md`** — Treat these as authoritative specifications. Do not modify their requirements to make the implementation easier. Any change must follow the project's explicit approval and dated-changelog rules.
+5. **Other relevant docs** — Update `README.md`, API documentation, configuration examples, or feature documentation when the completed work makes them inaccurate or incomplete.
+
+Before committing, check documentation against the actual code and test results. Include all necessary documentation changes in the phase commit. Do not claim documentation is updated if it is not.
+
+At the end of each phase, report which documents were changed and why. If a document did not need modification, say so rather than making a meaningless edit.
+
 ## 4. Folder layout
 
 ```
