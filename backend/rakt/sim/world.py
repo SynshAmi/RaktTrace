@@ -14,11 +14,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from rakt import config
+from rakt.domain.geo import EARTH_RADIUS_KM, haversine_km
 from rakt.models import BloodGroup, Centre, Channel, Contact, Donor, Hospital, Product, Stock
 
 PHRASES_FILE = Path(__file__).with_name("phrases.json")
 CITY_CENTRE = (12.9716, 77.5946)
-EARTH_RADIUS_KM = 6371
 
 AREAS = {
     "Jayanagar": (12.9250, 77.5938), "Basavanagudi": (12.9420, 77.5750), "BTM Layout": (12.9166, 77.6101),
@@ -87,14 +87,8 @@ def rng_for(seed: int, *key: object) -> random.Random:
     return random.Random(":".join(str(k) for k in (seed, *key)))
 
 
-def km_between(a: tuple[float, float], b: tuple[float, float]) -> float:
-    lat1, lon1, lat2, lon2 = map(math.radians, (*a, *b))
-    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
-    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(h))
-
-
 def nearest_area(lat: float, lon: float) -> str:
-    return min(AREAS, key=lambda name: km_between((lat, lon), AREAS[name]))
+    return min(AREAS, key=lambda name: haversine_km((lat, lon), AREAS[name]))
 
 
 def point_near(rng: random.Random, centre: tuple[float, float], radius_km: float) -> tuple[float, float]:

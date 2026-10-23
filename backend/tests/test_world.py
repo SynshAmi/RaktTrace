@@ -1,8 +1,9 @@
 from datetime import datetime
 
 from rakt import config
+from rakt.domain.geo import haversine_km
 from rakt.models import IST, BloodGroup, Product
-from rakt.sim.world import draw_request, generate_world, km_between, load_phrases, rng_for, tonight_factor
+from rakt.sim.world import draw_request, generate_world, load_phrases, rng_for, tonight_factor
 
 SEED = 42
 NOW = datetime(2026, 10, 24, 22, 40, tzinfo=IST)
@@ -27,7 +28,7 @@ def test_world_shape():
     assert sum(c.apheresis for c in world.centres.values()) == 3
     assert len(world.donors) == config.SIM_DONOR_COUNT
     centre = (12.9716, 77.5946)
-    assert all(km_between(centre, (d.lat, d.lon)) <= config.SIM_DONOR_RADIUS_KM + 0.01 for d in world.donors.values())
+    assert all(haversine_km(centre, (d.lat, d.lon)) <= config.SIM_DONOR_RADIUS_KM + 0.01 for d in world.donors.values())
 
 
 def test_latent_keyed_by_donor():

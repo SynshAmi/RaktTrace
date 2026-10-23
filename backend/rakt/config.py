@@ -49,6 +49,21 @@ ISSUE_FROM_STOCK_MIN = 45  # Reported crossmatch/issue times
 SAFETY_MARGIN_MIN = 30  # Design
 CITY_SPEED_KMPH = 18  # Assumption: Bengaluru city traffic
 ROAD_FACTOR = 1.4  # Assumption: road ≈ 1.4 × straight line
+REPLY_LAG_MIN = 15  # AGENT §4: start = now + 15 min for a donor who hasn't replied; also the + 15 in min pipeline
+MIN_GO_WINDOW_MIN = 20  # AGENT §4 and §5.1: not invited if the go window is under 20 min
+
+# --- Eligibility (DOMAIN_RULES §2, VERIFIED: D&C Rules donor criteria, G.S.R. 166(E), 2020) ---
+MIN_AGE = 18  # E1
+WHOLE_BLOOD_MAX_AGE = 65  # E2
+FIRST_TIME_MAX_AGE = 60  # E2: first-time whole-blood donors not over 60
+APHERESIS_AGE = (18, 60)  # E3
+WHOLE_BLOOD_MIN_WEIGHT_KG = 45  # E4
+APHERESIS_MIN_WEIGHT_KG = 50  # E5
+WHOLE_BLOOD_INTERVAL_DAYS = {"M": 90, "F": 120, None: 120}  # E6: unknown sex → 120
+APHERESIS_GAP_H = 48  # E7
+APHERESIS_MAX_PER_WEEK = 2  # E7
+APHERESIS_MAX_PER_YEAR = 24  # E7
+CROSS_PRODUCT_GAP_DAYS = 28  # E8 and E9
 
 # --- Stock chance: (listing age up to, in hours) → chance the listing is true ---
 STOCK_P = ((6, 0.85), (24, 0.65), (float("inf"), 0.50))  # Assumption
