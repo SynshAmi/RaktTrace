@@ -28,7 +28,7 @@ The step-by-step build, with a verification gate per phase. What to build is in 
 - **1.1** uv project, FastAPI app + `GET /api/health`. `config.py` with every AGENT §2 constant (same names and values, basis comments). `models.py` per BUILD §5.1–5.2, including `Button`, `Contact`, `Outgoing`, `Inbound`, `PleaDraft`, `ReplyRead`.
 - **1.2** Store (per-lane and per-policy copies); sim clock + timer queue (step/advance in time order). §5.4 stubs: `router.deliver` → sim inbox; `loop.handle_inbound` / `loop.link_chat` no-ops; `llm.*` returning rule-fallback values.
 - **1.3** World generator with common random numbers (AGENT §9: rescaled tonight factor; per-donor latent outcome keyed by donor id). Scenario loader + `s1`/`s2`/`s3` JSON (SPEC §5). Scenario data must make the SPEC outcomes reachable:
-  - S1: Centre D's listing is older than A's, so the stock step asks B and A, not D; A answers "Some 1" before B answers "Reserve 2" (B is trimmed to 1).
+  - S1: Centre D's listing is older than A's, so the first stock asks go to B and A in parallel, not D; A answers "Some 1" before B answers "Reserve 2" (B is trimmed to 1). A's shortfall drops stock alone below 90%, so AGENT §5 Step 2 then asks D; D is released when B confirms.
   - S2: the scenario override adds enough eligible O+ apheresis-capable donors near Centre B that at least 12 pass every filter at t = 0 (realistic: centres keep apheresis donor lists).
 
 **1.V** Tests:
@@ -60,7 +60,7 @@ Pass: all green.
 - `p_at_least` sanity values;
 - posterior = prior at 0 replies; shifts up on yeses, down on noes and STOP; silence weaker than a no;
 - P_firm identical under all rates;
-- S1 to SECURED with 0 donor invites: B and A asked, D not; A 1 + B 1 kept;
+- S1 to SECURED with 0 donor invites: B and A asked in parallel at t = 0, D not; D asked only after A's shortfall and released when B confirms; A 1 + B 1 kept;
 - re-plan twice → no new actions.
 
 Pass: all green.

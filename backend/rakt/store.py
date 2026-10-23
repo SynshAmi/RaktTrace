@@ -29,6 +29,11 @@ class Store:
     pledges: dict[str, Pledge] = field(default_factory=dict)
     decisions: list[Decision] = field(default_factory=list)
     baselines: dict[str, BaselineState] = field(default_factory=dict)
+    seq: dict[str, int] = field(default_factory=dict)
+
+    def next_id(self, prefix: str) -> str:
+        self.seq[prefix] = self.seq.get(prefix, 0) + 1
+        return f"{prefix}_{self.seq[prefix]}"
 
     def copy(self) -> Store:
         return deepcopy(self)

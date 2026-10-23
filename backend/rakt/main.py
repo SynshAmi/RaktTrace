@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from rakt import llm, store
+from rakt.agent import loop
 from rakt.config import settings
 from rakt.sim.scenarios import load_scenario
 
@@ -12,6 +13,8 @@ from rakt.sim.scenarios import load_scenario
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     store.set_state(load_scenario(settings.default_scenario))
+    for request_id in store.state.main.requests:
+        loop.start(request_id)
     yield
 
 
