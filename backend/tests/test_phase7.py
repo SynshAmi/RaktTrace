@@ -265,7 +265,9 @@ def test_demo_controls(api):
     reset_ = api.post("/api/demo/reset", json={"scenario": "s1_surgery_tonight"}).json()
     assert reset_["now"] == "2026-10-24T18:00:00+05:30" and reset_["request_id"] == store.state.scenario_request_id
     assert api.post("/api/demo/reset", json={"scenario": "s9"}).status_code == 404
-    assert api.get("/api/demo/clock").json() == {"now": "2026-10-24T18:00:00+05:30", "auto": False}
+    assert api.get("/api/demo/clock").json() == {
+        "now": "2026-10-24T18:00:00+05:30", "auto": False,
+        "scenario": {"id": "s1_surgery_tonight", "title": "S1 · Surgery tonight: B+ 2 units red cells in 4 h"}}
     step = api.post("/api/demo/step").json()
     assert step["event"]["kind"] == "sim_inbound" and step["now"] == "2026-10-24T18:08:00+05:30"
     assert api.post("/api/demo/advance", json={"minutes": 10}).json()["now"] == "2026-10-24T18:18:00+05:30"

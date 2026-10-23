@@ -242,6 +242,7 @@ class Pledge(BaseModel):
     reply_text: str | None = None
     available_from: datetime | None = None
     booking_code: str | None = None
+    on_way_at: datetime | None = None  # an ACTIVE donor tapped "On my way" (no status change: still ACTIVE)
     ready_at: datetime | None = None
     why: str = ""
 

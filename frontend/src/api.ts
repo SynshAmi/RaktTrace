@@ -4,7 +4,7 @@ export type RequestStatus = "OPEN" | "COVERED" | "SECURED" | "FULFILLED" | "FAIL
 
 export type Health = { ok: boolean; now: string; llm: "on" | "off"; telegram: "ok" | "off" };
 export type Scenario = { id: string; title: string };
-export type Clock = { now: string; auto: boolean };
+export type Clock = { now: string; auto: boolean; scenario: Scenario | null };
 
 export type RequestSummary = {
   id: string;
@@ -114,7 +114,7 @@ export const api = {
   health: () => call<Health>("/health"),
   scenarios: () => call<Scenario[]>("/demo/scenarios"),
   clock: () => call<Clock>("/demo/clock"),
-  reset: (scenario: string) => call<{ now: string; request_id: string | null }>("/demo/reset", { scenario }),
+  reset: (scenario: string) => call<Clock & { request_id: string | null }>("/demo/reset", { scenario }),
   step: () => call<{ now: string; event: unknown }>("/demo/step", {}),
   advance: (minutes: number) => call<{ now: string }>("/demo/advance", { minutes }),
   auto: (on: boolean) => call<{ auto: boolean }>("/demo/auto", { on }),

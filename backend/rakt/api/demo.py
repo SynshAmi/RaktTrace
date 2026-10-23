@@ -26,7 +26,9 @@ class AutoBody(BaseModel):
 
 
 def clock_view() -> dict:
-    return {"now": store.state.clock.now.isoformat(), "auto": store.state.auto}
+    scenario = store.state.scenario
+    return {"now": store.state.clock.now.isoformat(), "auto": store.state.auto,
+            "scenario": {"id": scenario.id, "title": scenario.title} if scenario else None}
 
 
 @router.get("/demo/scenarios")
@@ -40,8 +42,7 @@ def reset(body: ResetBody) -> dict:
         raise HTTPException(404, f"No scenario {body.scenario}")
     with store.lock:
         loop.reset_scenario(body.scenario)  # a new world and clock; linked live identities are attached again
-        state = store.state
-        return {"now": state.clock.now.isoformat(), "request_id": state.scenario_request_id}
+        return {**clock_view(), "request_id": store.state.scenario_request_id}
 
 
 @router.get("/demo/clock")

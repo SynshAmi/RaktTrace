@@ -1,23 +1,26 @@
 import type { RequestStatus } from "./api";
 
+// pos = confirmed / in hand, neg = urgent or failed, neu = working on it, muted = closed or not counted.
 export type Tone = "pos" | "neg" | "neu" | "muted";
 
 export const toneText: Record<Tone, string> = {
-  pos: "text-pos",
-  neg: "text-neg",
-  neu: "text-neu",
+  pos: "text-accent",
+  neg: "text-danger",
+  neu: "text-text",
   muted: "text-muted",
 };
 
-// PRODUCT §4 badges.
-export const requestStatus: Record<RequestStatus, { label: string; tone: Tone }> = {
-  OPEN: { label: "Finding blood", tone: "neu" },
-  COVERED: { label: "On track", tone: "pos" },
-  SECURED: { label: "Blood arranged", tone: "pos" },
-  FULFILLED: { label: "Ready for patient", tone: "pos" },
-  FAILED: { label: "Needs help", tone: "neg" },
-  CANCELLED: { label: "Cancelled", tone: "muted" },
+// PRODUCT §4 badges. Only staff-confirmed FULFILLED gets the positive tone: a yes isn't blood.
+export const requestStatus: Record<RequestStatus, { label: string; tone: Tone; icon: string }> = {
+  OPEN: { label: "Finding blood", tone: "neu", icon: "○" },
+  COVERED: { label: "On track", tone: "neu", icon: "◔" },
+  SECURED: { label: "Blood arranged", tone: "neu", icon: "◑" },
+  FULFILLED: { label: "Ready for patient", tone: "pos", icon: "✓" },
+  FAILED: { label: "Needs help", tone: "neg", icon: "!" },
+  CANCELLED: { label: "Cancelled", tone: "muted", icon: "×" },
 };
+
+export const baselineStatus = { SEARCHING: "Searching", SAYS_FULFILLED: "Says fulfilled" } as const;
 
 const GROUPS: Record<string, string> = {
   O_POS: "O+", O_NEG: "O−", A_POS: "A+", A_NEG: "A−", B_POS: "B+", B_NEG: "B−", AB_POS: "AB+", AB_NEG: "AB−",

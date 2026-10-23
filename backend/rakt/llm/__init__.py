@@ -33,6 +33,11 @@ def set_enabled(on: bool) -> None:
     _enabled = on
 
 
+def reading_with_llm() -> bool:
+    """Enabled and at least one chain entry has its API key; otherwise every read falls back to the rules."""
+    return _enabled and any(getattr(settings, client.PROVIDERS[p][1]) for p, _ in client.chain())
+
+
 def status() -> dict:
     names = [f"{p}:{m}" for p, m in client.chain()]
     return {"enabled": _enabled, "chain": [{"name": n, "healthy": client.health.get(n, False)} for n in names]}

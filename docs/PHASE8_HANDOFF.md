@@ -9,9 +9,9 @@ cd backend && uv sync && uv run uvicorn rakt.main:app --host 127.0.0.1 --port 80
 cd backend && uv run pytest -q                                                        # 295 tests, offline
 cd backend && uv run python -m rakt.sim.benchmark                                     # seed 2026, N = 500, ~25 s
 cd frontend && npm install && npm run dev                                             # dashboard on :5173, proxies /api
-cd frontend && npm run build                                                          # type-check + production build
+cd frontend && npm test && npm run build                                              # workflow tests; type-check + production build
 ```
-Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has a token. `GET /api/health` → `{"ok", "now", "llm": "on"|"off", "telegram": "ok"|"off"}`. Vite should proxy `/api` to `:8000`.
+Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has a token. `GET /api/health` → `{"ok", "now", "llm": "on"|"off", "telegram": "ok"|"off"}`; `llm` is "on" only when the LLM is enabled and a provider in `LLM_CHAIN` has its key. Vite proxies `/api` to `:8000`; `RAKT_API=http://127.0.0.1:<port> npm run dev` points it at a backend on another port.
 
 ## 2. What to poll (every 2 s)
 
@@ -22,7 +22,7 @@ Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has 
 | Today's-workflow lane | `GET /api/requests/{id}/baseline` | timeline up to the sim clock; `truth_at_deadline` is null until the deadline |
 | Decision log | `GET /api/requests/{id}/decisions` | `summary` is the plain sentence to show |
 | Phones panel | `GET /api/sim/phones`, `GET /api/sim/phones/{id}/messages` | roles: donor, staff, family, coordinator; reading messages marks them read. Linked Telegram chats appear too (their messages are copies; a failed Telegram send shows with `channel: "sim"`). |
-| Clock | `GET /api/demo/clock` | `{now, auto}` |
+| Clock | `GET /api/demo/clock` | `{now, auto, scenario: {id, title}}`: the scenario actually running |
 | LLM | `GET /api/llm` | `{enabled, chain: [{name, healthy}]}` |
 
 Statuses: `OPEN` "Finding blood", `COVERED` "On track", `SECURED` "Blood arranged", `FULFILLED` "Ready for patient", `FAILED` "Needs help", `CANCELLED`. `escalation.level == 2` → red banner with `brief` and `call_list`.
@@ -31,7 +31,7 @@ Statuses: `OPEN` "Finding blood", `COVERED` "On track", `SECURED` "Blood arrange
 
 | Action | Endpoint |
 |---|---|
-| Pick and reset a scenario | `GET /api/demo/scenarios`, `POST /api/demo/reset {scenario}` → `{now, request_id}` |
+| Pick and reset a scenario | `GET /api/demo/scenarios`, `POST /api/demo/reset {scenario}` → `{now, auto, scenario, request_id}` |
 | Step / advance / auto | `POST /api/demo/step` → `{now, event}` · `POST /api/demo/advance {minutes}` (1–1440) · `POST /api/demo/auto {on}` (1 sim min per real s) |
 | New request | `POST /api/requests/parse {text}` → draft + `missing` + `read_by`; then `POST /api/requests {group, product, units, hospital_id, deadline_at, family?}` → RequestView or `{merged_into}` |
 | Cancel | `POST /api/requests/{id}/cancel` (409 if already closed) |

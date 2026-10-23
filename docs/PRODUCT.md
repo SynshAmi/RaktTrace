@@ -31,7 +31,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - Shows a "Merged into RT-xxxx" notice if it's a duplicate.
 2. **Request view** (the hero screen). Two lanes side by side: **RaktTrace** and **Today's workflow**. Each lane shows:
    - status badge;
-   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed);
+   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed; the dashboard shows it as stock check → remaining gap → donor replies → ready in time → collected / reserved → confirmed by staff, with confirmed-ready units shown apart from P);
    - timeline.
 
    The RaktTrace lane also shows:
@@ -43,9 +43,10 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    The Today's-workflow lane starts collapsed into a clearly labelled "Today's workflow · Compare" control and opens as a narrower side-by-side column (about 30%), so the presenter reveals the comparison when it matters (agreed by the team, 24 Oct 2026; both lanes stay on this screen, SPEC L-09). Its figures come only from `GET /requests/{id}/baseline`.
 3. **Phones panel:** list of simulated phones (donors, centres, family) → a chat view with tappable buttons and a text box.
 4. **Controls:**
-   - scenario picker + Reset;
-   - Step, +15 min, +1 h, Auto (play/pause);
+   - scenario picker showing the running scenario (choosing one loads it from its start) + Restart;
+   - Next event (step), +15 min, +1 h, Play/Pause;
    - sim clock;
+   - backend, LLM and Telegram status; light/dark theme;
    - LLM on/off.
 5. **Benchmark:** run N requests and seed → a results table and a simple bar chart, today vs RaktTrace.
 
@@ -177,6 +178,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 |---|---|---|
 | `donor_invite` | 🩸 RaktTrace · {code}<br>{group} {product_label} needed at {centre}, {area}, by {deadline}.<br>You're a match, about {km} km away. Can you reach {centre} by {latest_arrival}?<br>Only come if you're well (no recent illness, tattoo or antibiotics). Staff at the centre will check you. | Yes, I can go · Not this time · Stop requests |
 | `donor_go` | Thank you! 🙏 Please go to {centre}, {address}.<br>Map: {maps_link}<br>Booking code: {booking_code}. Show it at the counter.<br>Please arrive by {latest_arrival}. | On my way · Can't make it |
+| `donor_on_way` | Thanks! {centre} knows you're coming. Show booking code {booking_code} at the counter. If plans change, tap Can't make it above. (an ACTIVE donor tapped On my way; recorded once, status stays ACTIVE) | — |
 | `donor_standby` | Thank you! Enough donors are heading there right now. Please stay on standby until {standby_until}. We'll message only if we need you. | OK · Not available |
 | `donor_promote` | {code}: we need you now. Can you reach {centre} by {latest_arrival}? | Going now · Can't |
 | `donor_too_late` | Thank you! This one is needed by {deadline}, so a donation at that time would be too late. We'll ask you next time. | — |

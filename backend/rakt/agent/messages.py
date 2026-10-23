@@ -83,6 +83,12 @@ def donor_go(request: Request, pledge: Pledge, donor: Donor, centre: Centre, lat
     return Outgoing(to=donor.contact, kind="donor_go", body=body, buttons=buttons, request_id=request.id)
 
 
+def donor_on_way(request: Request, pledge: Pledge, donor: Donor, centre: Centre) -> Outgoing:
+    body = (f"Thanks! {centre.name} knows you're coming. Show booking code {pledge.booking_code} at the counter. "
+            f"If plans change, tap Can't make it above.")
+    return Outgoing(to=donor.contact, kind="donor_on_way", body=body, request_id=request.id)
+
+
 def donor_standby(request: Request, pledge: Pledge, donor: Donor, standby_until: datetime) -> Outgoing:
     body = (f"Thank you! Enough donors are heading there right now. Please stay on standby until "
             f"{when(standby_until)}. We'll message only if we need you.")

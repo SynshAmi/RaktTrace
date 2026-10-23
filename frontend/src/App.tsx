@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
-import Controls from "./components/Controls";
+import Controls, { type Theme } from "./components/Controls";
 import RequestView from "./pages/RequestView";
 import { usePoll } from "./usePoll";
-
-type Theme = "dark" | "light";
 
 function stored(key: string): string | null {
   try {
@@ -31,15 +29,15 @@ function initialTheme(): Theme {
 export default function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [version, setVersion] = useState(0);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [controlError, setControlError] = useState<string | null>(null);
-  const [scenario, setScenario] = useState(() => stored("rakt.scenario") ?? "");
   const [picked, setPicked] = useState<string | null>(null);
+  const inFlight = useRef(false);
 
   const scenarios = usePoll(api.scenarios, "scenarios", 0, 60_000);
-  const clock = usePoll(api.clock, "clock", version, undefined, busy);
+  const clock = usePoll(api.clock, "clock", version, undefined, busy !== null);
   const health = usePoll(api.health, "health", version, 10_000);
-  const requests = usePoll(api.requests, "requests", version, undefined, busy);
+  const requests = usePoll(api.requests, "requests", version, undefined, busy !== null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -49,66 +47,76 @@ export default function App() {
   // After a reset the new request id arrives before the next list poll, so trust it over the (stale) list.
   const requestId = picked ?? list[0]?.id ?? null;
 
-  // Controls go one at a time; every poll refreshes right after each one.
-  async function control(run: () => Promise<unknown>) {
-    setBusy(true);
+  // The picked request can vanish (a reset from another tab); then fall back to the list.
+  useEffect(() => {
+    if (busy === null && picked && requests.data && !requests.data.some((r) => r.id === picked)) setPicked(null);
+  }, [requests.data]);
+
+  // Controls go one at a time; every poll refreshes right after each one. The ref blocks a second click that lands
+  // before React re-renders with the buttons disabled.
+  async function control(label: string, run: () => Promise<unknown>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(label);
     setControlError(null);
     try {
       await run();
     } catch (e) {
       setControlError((e as Error).message);
     } finally {
-      setBusy(false);
+      inFlight.current = false;
+      setBusy(null);
       setVersion((n) => n + 1);
     }
   }
 
-  const reset = () =>
-    control(async () => {
-      const r = await api.reset(scenario);
+  // Loading a scenario resets the world to its start: the backend's clock then reports it as the active one.
+  const load = (scenarioId: string) =>
+    control(`Loading ${scenarioId}`, async () => {
+      const r = await api.reset(scenarioId);
       setPicked(r.request_id);
     });
+
+  const offline = clock.error !== null;
+  const activeScenario = offline ? null : clock.data?.scenario ?? null;
 
   return (
     <div className="flex min-h-screen flex-col">
       <Controls
         scenarios={scenarios.data ?? []}
-        scenario={scenario}
-        onScenario={(id) => {
-          setScenario(id);
-          store("rakt.scenario", id);
-        }}
-        clock={clock.data}
-        health={health.data}
+        active={activeScenario}
+        clock={offline ? null : clock.data}
+        health={offline ? null : health.data}
+        offline={offline}
         busy={busy}
-        onReset={reset}
-        onStep={() => control(api.step)}
-        onAdvance={(m) => control(() => api.advance(m))}
-        onAuto={(on) => control(() => api.auto(on))}
+        onLoad={load}
+        onRestart={() => activeScenario && load(activeScenario.id)}
+        onStep={() => control("Next event", api.step)}
+        onAdvance={(m) => control(`+${m} min`, () => api.advance(m))}
+        onAuto={(on) => control(on ? "Play" : "Pause", () => api.auto(on))}
         theme={theme}
-        onTheme={() => {
-          const next = theme === "dark" ? "light" : "dark";
+        onTheme={(next) => {
           setTheme(next);
           store("rakt.theme", next);
         }}
       />
-      {(controlError || clock.error) && (
-        <p className="bg-neg-fill px-6 py-2 text-on-bar">
-          {controlError ?? `Can't reach the backend: ${clock.error}`}
+      {(controlError || offline) && (
+        <p role="alert" className="bg-danger-fill px-4 py-2 text-on-danger sm:px-6">
+          {controlError ?? `Can't reach the backend (${clock.error}). Showing the last state received; it may be out of date.`}
         </p>
       )}
 
       <div className="flex-1">
         {requestId ? (
-          <RequestView id={requestId} requests={list} onPick={setPicked} version={version} paused={busy} />
+          <RequestView id={requestId} requests={list} onPick={setPicked} version={version} paused={busy !== null} />
         ) : (
-          <p className="px-6 py-10 text-muted">
-            {requests.data ? "No request yet. Pick a scenario and press Reset." : "Connecting to the backend…"}
+          <p className="px-4 py-10 text-muted sm:px-6">
+            {requests.data ? "No request in this world yet. Load a scenario above." : "Connecting to the backend…"}
           </p>
         )}
       </div>
 
-      <footer className="px-6 py-4 text-sm text-faint">
+      <footer className="px-4 py-4 text-sm text-faint sm:px-6">
         Synthetic Bengaluru simulation: no real patients, hospitals, donors or stock feeds.
       </footer>
     </div>

@@ -642,6 +642,12 @@ def donor_button(pledge_id: str, choice: str, sender_id: str) -> None:
     elif pledge.status == S.ACTIVE and choice == "CANT":
         pledge.status = S.NO_SHOW
         replan(pledge.request_id, f"{name(pledge)} can't make it", True)
+    elif pledge.status == S.ACTIVE and choice == "OMW" and pledge.on_way_at is None:  # repeats change nothing
+        request = s.requests[pledge.request_id]
+        pledge.on_way_at = store.state.clock.now
+        router.deliver(messages.donor_on_way(request, pledge, s.donors[pledge.donor_id],
+                                             s.centres[request.collection_centre_id]))
+        replan(pledge.request_id, f"{name(pledge)} is on the way", True)
 
 
 def text_target(msg: Inbound) -> tuple[str, datetime] | None:

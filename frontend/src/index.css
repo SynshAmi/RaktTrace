@@ -1,52 +1,87 @@
 @import "tailwindcss";
 
-/* Aditya's palette: ink, oxblood, blood red, cream, soft yellow; green added for positive states. */
+/*
+ * Brand palette: ink #171313 · oxblood #35191B · blood red #C62836 · cream #F4E8C9 · soft yellow #E8D99A.
+ * Solid colours only, high contrast. Soft yellow = staff-confirmed / emphasis; blood red = urgent or failed;
+ * cream = text and estimates. --danger is blood red lifted just enough to read as text on ink.
+ */
 :root {
   --bg: #171313;
-  --surface: #1f1918;
+  --raise: #221b1b;
   --bar: #35191b;
-  --line: rgb(244 232 201 / 0.12);
+  --line: #3d2f2d;
+  --line-strong: #6b5a50;
   --text: #f4e8c9;
-  --muted: rgb(244 232 201 / 0.62);
-  --faint: rgb(244 232 201 / 0.38);
-  --pos: #7fa97a;
-  --neg: #e0585f;
-  --neg-fill: #c62836;
-  --neu: #e8d99a;
+  --muted: #e0d3b0;
+  --faint: #b8a985;
+  --accent: #e8d99a;
+  --accent-fill: #e8d99a;
+  --on-accent: #171313;
+  --mark: #e8d99a; /* confirmed marks and rules: soft yellow on ink, oxblood on cream */
+  --on-mark: #171313;
+  --target: #e8d99a;
+  --danger: #ef4b57;
+  --danger-fill: #c62836;
+  --on-danger: #f4e8c9;
+  --gauge: #f4e8c9;
   --on-bar: #f4e8c9;
+  --on-bar-muted: #e3cfa9;
+  --focus: #e8d99a;
+  --header-h: 8rem;
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
   --bg: #f4e8c9;
-  --surface: #ecdcb6;
+  --raise: #ecdcb2;
   --bar: #35191b;
-  --line: rgb(23 19 19 / 0.14);
+  --line: #d6c499;
+  --line-strong: #9c8360;
   --text: #171313;
-  --muted: rgb(23 19 19 / 0.64);
-  --faint: rgb(23 19 19 / 0.42);
-  --pos: #2f6b3a;
-  --neg: #b0222f;
-  --neg-fill: #c62836;
-  --neu: #7a5c10;
+  --muted: #35191b;
+  --faint: #5e4540;
+  --accent: #35191b;
+  --accent-fill: #e8d99a;
+  --on-accent: #171313;
+  --mark: #35191b;
+  --on-mark: #f4e8c9;
+  --target: #171313;
+  --danger: #a81f2c;
+  --danger-fill: #c62836;
+  --on-danger: #f4e8c9;
+  --gauge: #35191b;
   --on-bar: #f4e8c9;
+  --on-bar-muted: #e3cfa9;
+  --focus: #c62836;
   color-scheme: light;
 }
 
 @theme {
   --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
   --color-bg: var(--bg);
-  --color-surface: var(--surface);
+  --color-raise: var(--raise);
   --color-bar: var(--bar);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
-  --color-pos: var(--pos);
-  --color-neg: var(--neg);
-  --color-neg-fill: var(--neg-fill);
-  --color-neu: var(--neu);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-mark: var(--mark);
+  --color-on-mark: var(--on-mark);
+  --color-target: var(--target);
+  --color-danger: var(--danger);
+  --color-danger-fill: var(--danger-fill);
+  --color-on-danger: var(--on-danger);
+  --color-gauge: var(--gauge);
   --color-on-bar: var(--on-bar);
+  --color-on-bar-muted: var(--on-bar-muted);
+}
+
+html {
+  scroll-padding-top: calc(var(--header-h) + 1rem); /* anchors and focus land below the sticky header */
 }
 
 body {
@@ -57,9 +92,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button:focus-visible,
-select:focus-visible,
-summary:focus-visible {
-  outline: 2px solid var(--neu);
+:focus-visible {
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+header :focus-visible {
+  outline-color: var(--accent-fill);
+}
+
+select option {
+  background: var(--raise);
+  color: var(--text);
 }
