@@ -31,6 +31,9 @@ class Store:
     decisions: list[Decision] = field(default_factory=list)
     baselines: dict[str, BaselineState] = field(default_factory=dict)
     promotions: dict[str, datetime] = field(default_factory=dict)  # standby pledge id → when asked to go now
+    notified: set[tuple[str, str]] = field(default_factory=set)  # (request id, what) already sent once
+    overdue: set[tuple[str, str]] = field(default_factory=set)  # (request id, card) staff taps overdue
+    call_lists: dict[str, list[dict]] = field(default_factory=dict)  # request id → L2 call list
     seq: dict[str, int] = field(default_factory=dict)
 
     def next_id(self, prefix: str) -> str:

@@ -4,7 +4,7 @@
   "seed": 42,
   "now": "2026-10-24T18:00:00+05:30",
   "request": {"group": "B_POS", "product": "PRBC", "units": 2, "hospital_id": "h_city",
-              "deadline_at": "2026-10-24T22:00:00+05:30"},
+              "deadline_at": "2026-10-24T22:00:00+05:30", "family": true},
   "notes": [
     "Only A, B and D hold compatible red cells; every other compatible listing is cleared.",
     "D's listing is older than A's, so the first asks go to B (fresh) and A, not D. After A's shortfall the planner asks D; D is released when B confirms.",

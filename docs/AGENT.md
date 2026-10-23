@@ -290,7 +290,7 @@ Levels only go up.
 
 | Level | When | What |
 |---|---|---|
-| **L1 Widen** | `pool_exhausted` or no stock left to ask, and P < 0.9 | Jump to the smallest radius in `SEARCH_RADII_KM` that adds any candidate centre or donor (40 km if none); re-run the planner at once. |
+| **L1 Widen** | Nothing left to try at the current radius: no stock left to ask **and** (donors can't help **or** `pool_exhausted`), and P < 0.9 | Jump to the smallest radius in `SEARCH_RADII_KM` that adds any candidate centre or donor (40 km if none); re-run the planner at once. |
 | **L2 Alert** | Any of:<br>• `P_best < ESCALATE_P`<br>• ≥ 50% of the window gone and P < `HALFTIME_ESCALATE_P`<br>• at 40 km and P < 0.9<br>• a staff tap overdue by `2 × STAFF_GRACE_MIN` | LLM writes the brief (§7.3). `coord_alert` with the brief + call list (3 nearest centres listing any compatible units, including ones already asked). O− unlocked. Red banner. |
 | **FAILED** | Deadline passed, ready units < need | `coord_failed` summary; standby donors released |
 

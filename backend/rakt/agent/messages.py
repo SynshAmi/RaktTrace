@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from rakt.models import (
-    GROUP_LABELS, PRODUCT_LABELS, Button, Centre, Donor, Hospital, Outgoing, Pledge, Request, Reservation,
+    GROUP_LABELS, PRODUCT_LABELS, Button, Centre, Contact, Donor, Hospital, Outgoing, Pledge, Request, Reservation,
 )
 
 
@@ -106,6 +106,54 @@ def donor_text(kind: str, request: Request, donor: Donor, **fields) -> Outgoing:
                             "Stay rested for the next one 💙",
         "donor_thanks_collected": "Thank you for donating today ❤️ You can donate again from {next_date}.",
         "donor_unclear": "Sorry, I didn't get that. Please tap one of the buttons above 🙏",
+        "donor_stand_down": "Blood for {code} is arranged. You're not needed this time and stay rested for the next one. "
+                            "Thank you 💙",
+        "donor_closed": "{code} is closed, so you're not needed for it any more. Thank you for being ready 💙",
     }
     body = bodies[kind].format(code=request.id, deadline=when(request.deadline_at), **fields)
     return Outgoing(to=donor.contact, kind=kind, body=body, request_id=request.id)
+
+
+# --- Staff: ready for the patient ---
+
+def ready_buttons(target: str, target_id: str) -> list[Button]:
+    """target "P" (a donor's unit) or "R" (reserved stock)."""
+    return [Button(id=f"D:{target}:{target_id}:READY", title="Ready for patient"),
+            Button(id=f"D:{target}:{target_id}:FAILED", title="Failed testing")]
+
+
+def staff_ready(request: Request, centre: Centre, target: str, target_id: str, booking_code: str | None) -> Outgoing:
+    unit = f"Unit from code {booking_code}" if booking_code else "Unit from reserved stock"
+    return Outgoing(to=centre.contact, kind="staff_ready", buttons=ready_buttons(target, target_id),
+                    body=f"{unit} for {request.id}: ready for the patient?", request_id=request.id)
+
+
+def staff_reminder(request: Request, centre: Centre, subject: str, buttons: list[Button]) -> Outgoing:
+    return Outgoing(to=centre.contact, kind="staff_reminder", buttons=buttons,
+                    body=f"Reminder · {request.id}: any update on {subject}?", request_id=request.id)
+
+
+# --- Family and coordinator ---
+
+def family_secured(request: Request, centres: list[str], ready_by: datetime) -> Outgoing:
+    body = (f"✅ Blood for {request.id} is arranged at {' and '.join(centres)}, ready by {when(ready_by)}. "
+            "Please ask your groups to **stop forwarding** the message.")
+    return Outgoing(to=request.family, kind="family_secured", body=body, request_id=request.id)
+
+
+def family_fulfilled(request: Request, centres: list[str]) -> Outgoing:
+    body = (f"✅ {request.units} unit(s) for {request.id} are ready for the patient at {' and '.join(centres)}. "
+            "The hospital team will take it from here.")
+    return Outgoing(to=request.family, kind="family_fulfilled", body=body, request_id=request.id)
+
+
+def coord_alert(request: Request, to: Contact, p: float, brief: str, call_list: list[dict]) -> Outgoing:
+    lines = [f"{i}) {c['centre']}, {c['phone']}, {c['note']}" for i, c in enumerate(call_list, start=1)]
+    body = (f"⚠️ {request.id} needs attention. Chance of {request.units} unit(s) by {when(request.deadline_at)}: "
+            f"{round(100 * p)}%.\n{brief}\nCall list:\n" + ("\n".join(lines) or "none listing compatible units"))
+    return Outgoing(to=to, kind="coord_alert", body=body, request_id=request.id)
+
+
+def coord_failed(request: Request, to: Contact, ready: int, summary: str) -> Outgoing:
+    return Outgoing(to=to, kind="coord_failed", request_id=request.id,
+                    body=f"{request.id}: deadline passed. Ready: {ready} of {request.units}. {summary}")

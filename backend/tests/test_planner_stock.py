@@ -25,6 +25,13 @@ def run_all(state) -> None:
         pass
 
 
+def run_until_secured(state, request_id) -> None:
+    """Up to the moment the request is SECURED (later, staff Ready taps take it on to FULFILLED)."""
+    request = state.main.requests[request_id]
+    while request.status != RequestStatus.SECURED:
+        assert state.clock.step(loop.on_timer) is not None, "never secured"
+
+
 def by_centre(state, request_id):
     return {r.centre_id: r for r in state.main.reservations.values() if r.request_id == request_id}
 
@@ -48,7 +55,7 @@ def test_s1_first_asks_are_b_and_a_in_parallel():
 
 def test_s1_secured_with_a1_b1_and_zero_donors():
     state, rid = start("s1_surgery_tonight")
-    run_all(state)
+    run_until_secured(state, rid)
     request = state.main.requests[rid]
     res = by_centre(state, rid)
     assert request.status == RequestStatus.SECURED
@@ -97,7 +104,7 @@ def test_reservations_kept_in_arrival_order():
     (rid,) = state.main.requests
     state.draws[rid].staff_delay_min["c_b"] = 5  # B answers "Reserve 2" first
     loop.start(rid)
-    run_all(state)
+    run_until_secured(state, rid)
     res = by_centre(state, rid)
     assert (res["c_b"].status, res["c_b"].units_reserved) == (R.RESERVED, 2)
     assert res["c_a"].status == R.RELEASED

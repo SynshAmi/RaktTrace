@@ -58,3 +58,26 @@ def read_reply(text: str, deadline: datetime, now: datetime) -> ReplyRead:
     if says_no:
         return ReplyRead(intent=Intent.NO, confidence=1.0, read_by="rules")
     return ReplyRead(intent=Intent.YES, available_from=later, confidence=1.0, read_by="rules")
+
+
+NEXT_STEPS = ["call these centres", "try a neighbouring district", "rare-donor registry",
+              "ask the hospital's transfusion officer"]
+
+
+def brief_template(facts: dict) -> str:
+    """AGENT §7.3 fallback: where things stand, what was tried, who is coming, what's missing, next steps."""
+    steps = []
+    if facts.get("call_list"):
+        steps.append(NEXT_STEPS[0])
+    if facts.get("at_max_radius"):
+        steps.append(NEXT_STEPS[1])
+    if facts.get("rare_group"):
+        steps.append(NEXT_STEPS[2])
+    steps.append(NEXT_STEPS[3])
+    return "\n".join([
+        f"Where it stands: {facts['status']}, {facts['p']}% chance of {facts['units']} unit(s) by {facts['deadline']}.",
+        f"Tried: {facts['tried']}.",
+        f"Coming: {facts['active']} donor(s) active, {facts['standby']} on standby.",
+        f"Missing: {facts['missing']} unit(s).",
+        f"Next: {' · '.join(steps[:3])}.",
+    ])

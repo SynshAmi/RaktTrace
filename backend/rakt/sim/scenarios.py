@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from rakt import config
 from rakt.clock import Clock
-from rakt.models import BloodGroup, Product, Request, Stock
+from rakt.models import BloodGroup, Channel, Contact, Product, Request, Stock
 from rakt.sim.world import (
     DonorLatent, RequestDraws, World, draw_request, generate_world, make_donor, point_near, rng_for,
 )
@@ -23,6 +23,7 @@ class RequestSpec(BaseModel):
     units: int
     hospital_id: str
     deadline_at: datetime
+    family: bool = False  # a sim phone "Family" gets the family messages
 
 
 class ClearStock(BaseModel):
@@ -136,10 +137,12 @@ def load_scenario(scenario_id: str) -> AppState:
     draws = draw_request(world, list(donors), scenario.seed, scenario.id, spec.product, scenario.now)
     draws = apply_stock_overrides(draws, scenario)
 
+    rid = request_id(scenario)
+    family = Contact(name="Family", channel=Channel.SIM, phone=f"family_{rid}") if spec.family else None
     request = Request(
-        id=request_id(scenario), group=spec.group, product=spec.product, units=spec.units,
+        id=rid, group=spec.group, product=spec.product, units=spec.units,
         hospital_id=spec.hospital_id, deadline_at=spec.deadline_at, created_at=scenario.now,
-        radius_km=config.SEARCH_RADII_KM[0],
+        radius_km=config.SEARCH_RADII_KM[0], family=family,
     )
     store = Store(
         hospitals=dict(world.hospitals), centres=dict(world.centres), stock=list(draws.stock),

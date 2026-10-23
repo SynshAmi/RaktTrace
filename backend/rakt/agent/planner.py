@@ -1,13 +1,14 @@
 """The planner (AGENT §5): the only decision-maker. Pure: reads state, returns actions; adds only what's missing.
 
-Covers Step 1 (estimate, status), Step 2 (stock first), Step 3 (wait or invite), Step 4 (roles for yes-replies)
-and Step 5 (promotion). Closing and escalation (Steps 6–7) come later.
+Steps 1–7: estimate and status, stock first, wait or invite, roles for yes-replies, promotion, close, escalate.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from rakt import config
+from rakt.agent import escalation
+from rakt.agent.escalation import Alert, Fail, Widen
 from rakt.agent.probability import ESTIMATORS, collect_sources, estimate, p_at_least, stock_p, stock_source
 from rakt.agent.ranking import candidates
 from rakt.domain.blood import compatible_groups
@@ -62,7 +63,19 @@ class Promote:
     pledge_id: str
 
 
-Action = AskStock | Release | SetStatus | FixCentre | Invite | Promote
+@dataclass(frozen=True)
+class StandDown:
+    pledge_id: str
+    reason: str  # "secured" | "closed"
+
+
+@dataclass(frozen=True)
+class NotifyFamily:
+    kind: str  # "secured" | "fulfilled"
+
+
+Action = AskStock | Release | SetStatus | FixCentre | Invite | Promote | StandDown | NotifyFamily | Widen | Alert | Fail
+UNCOMMITTED = {PledgeStatus.INVITED, PledgeStatus.NO_REPLY, PledgeStatus.STANDBY}
 
 
 @dataclass(frozen=True)
@@ -105,7 +118,16 @@ def certain_units(store: Store, request: Request, now: datetime) -> int:
     return units
 
 
+def ready_units(store: Store, request: Request) -> int:
+    """Units staff have tapped "Ready for patient" for."""
+    stock = sum(r.units_reserved for r in store.reservations.values()
+                if r.request_id == request.id and r.status == ReservationStatus.READY)
+    return stock + sum(p.request_id == request.id and p.status == PledgeStatus.READY for p in store.pledges.values())
+
+
 def status_for(store: Store, request: Request, now: datetime, p_firm: float) -> RequestStatus:
+    if ready_units(store, request) >= request.units:
+        return RequestStatus.FULFILLED
     if certain_units(store, request, now) >= request.units:
         return RequestStatus.SECURED
     return RequestStatus.COVERED if p_firm >= config.TARGET_P else RequestStatus.OPEN
@@ -113,15 +135,16 @@ def status_for(store: Store, request: Request, now: datetime, p_firm: float) -> 
 
 # --- Step 2: stock first ---
 
-def stock_candidates(store: Store, request: Request) -> list[Stock]:
+def stock_candidates(store: Store, request: Request, radius_km: float | None = None) -> list[Stock]:
     """Un-asked compatible listings in radius, exact group → fresher → nearer; one ask per centre."""
+    radius = request.radius_km if radius_km is None else radius_km
     groups = compatible_groups(request.group, request.product, request.escalation_level)
     hospital = store.hospitals[request.hospital_id]
     asked = {r.centre_id for r in store.reservations.values() if r.request_id == request.id}
     listings = [
         s for s in store.stock
         if s.product == request.product and s.group in groups and s.listed_units > 0
-        and s.centre_id not in asked and km(store.centres[s.centre_id], hospital) <= request.radius_km
+        and s.centre_id not in asked and km(store.centres[s.centre_id], hospital) <= radius
     ]
     listings.sort(key=lambda s: (groups.index(s.group), -s.listed_at.timestamp(),
                                  km(store.centres[s.centre_id], hospital), s.centre_id))
@@ -316,6 +339,27 @@ def plan_promotions(store: Store, request: Request, now: datetime) -> list[Promo
     return [Promote(p.id) for p in standby[:gap]]
 
 
+# --- Step 6: close ---
+
+def plan_close(store: Store, request: Request, status: RequestStatus) -> list[Action]:
+    """On SECURED: stand down uncommitted donors, release unneeded holds, tell the family (once).
+    On FULFILLED: tell the family the units are ready (once)."""
+    actions: list[Action] = pending_releases(store, request)
+    actions += [StandDown(p.id, "secured") for p in request_pledges(store, request) if p.status in UNCOMMITTED]
+    if request.family and (request.id, "secured") not in store.notified:
+        actions.append(NotifyFamily("secured"))
+    if status == RequestStatus.FULFILLED and request.family and (request.id, "fulfilled") not in store.notified:
+        actions.append(NotifyFamily("fulfilled"))
+    return actions
+
+
+def fail_actions(store: Store, request: Request) -> list[Action]:
+    """Deadline passed short: standby and unreplied donors released, pending holds let go."""
+    return pending_releases(store, request) + [
+        StandDown(p.id, "closed") for p in request_pledges(store, request) if p.status in UNCOMMITTED
+    ]
+
+
 # --- The plan ---
 
 def plan(store: Store, request_id: str, now: datetime) -> Plan:
@@ -327,9 +371,10 @@ def plan(store: Store, request_id: str, now: datetime) -> Plan:
     status = status_for(store, request, now, before.p_firm)
     actions: list[Action] = []
     p_after, pool_exhausted, waiting = before.p, False, False
+    asks: list[AskStock] = []
 
-    if certain_units(store, request, now) >= request.units:
-        actions += pending_releases(store, request)
+    if status in (RequestStatus.SECURED, RequestStatus.FULFILLED):
+        actions += plan_close(store, request, status)
     else:
         asks = plan_stock(store, request, now)
         actions += asks
@@ -338,10 +383,37 @@ def plan(store: Store, request_id: str, now: datetime) -> Plan:
         invites, p_after, pool_exhausted, waiting = plan_invites(store, request, now, asks, before.posterior, p_after)
         actions += invites
 
+    if status != RequestStatus.FULFILLED:
+        escalations = plan_escalation(store, request, now, asks, p_after, pool_exhausted)
+        if any(isinstance(a, Fail) for a in escalations):
+            actions = fail_actions(store, request) + escalations + [SetStatus(RequestStatus.FAILED)]
+            return Plan(actions, before.p, p_after, before.p_firm, RequestStatus.FAILED,
+                        summarise(store, request, actions, before.p, p_after), pool_exhausted, waiting)
+        actions += escalations
+
     if status != request.status:
         actions.append(SetStatus(status))
     return Plan(actions, before.p, p_after, before.p_firm, status,
                 summarise(store, request, actions, before.p, p_after), pool_exhausted, waiting)
+
+
+def plan_escalation(store: Store, request: Request, now: datetime, asks: list[AskStock], p_after: float,
+                    pool_exhausted: bool) -> list[Action]:
+    asked_now = {a.centre_id for a in asks}
+    hospital = store.hospitals[request.hospital_id]
+    view = escalation.View(
+        p=p_after,
+        stock_left=any(c.centre_id not in asked_now for c in stock_candidates(store, request)),
+        stock_at=lambda radius: any(c.centre_id not in asked_now for c in stock_candidates(store, request, radius)),
+        centre=donor_centre(store, request),
+        donors_can_help=donors_can_help(hospital, list(store.centres.values()), request.product, now,
+                                        request.deadline_at),
+        pool_exhausted=pool_exhausted,
+        ready=ready_units(store, request),
+        messaged=len(request_pledges(store, request)),
+        overdue=any(rid == request.id for rid, _ in store.overdue),
+    )
+    return escalation.plan_escalation(store, request, now, view)
 
 
 def summarise(store: Store, request: Request, actions: list[Action], p_before: float, p_after: float) -> str:
@@ -351,6 +423,25 @@ def summarise(store: Store, request: Request, actions: list[Action], p_before: f
     for a in actions:
         kind = type(a)
         if kind in sentences or kind is FixCentre:
+            continue
+        if kind is StandDown:
+            n = sum(isinstance(x, StandDown) for x in actions)
+            why = "blood is secured" if a.reason == "secured" else "the request is closed"
+            sentences[kind] = f"Stood down {n} donor{'s' if n != 1 else ''} ({why})."
+            continue
+        if kind is NotifyFamily:
+            told = [x.kind for x in actions if isinstance(x, NotifyFamily)]
+            sentences[kind] = ("Told the family the units are ready." if "fulfilled" in told
+                               else "Told the family to stop forwarding.")
+            continue
+        if kind is Widen:
+            sentences[kind] = f"Nothing left to try at {request.radius_km:g} km; widened the search to {a.radius_km:g} km."
+            continue
+        if kind is Alert:
+            sentences[kind] = f"Alerted the coordinator (L2): {'; '.join(a.reasons)}."
+            continue
+        if kind is Fail:
+            sentences[kind] = f"Deadline passed with {a.ready} of {request.units} unit(s) ready."
             continue
         if kind is AskStock:
             parts = [f"{store.centres[x.centre_id].name} for {x.units}" for x in actions if isinstance(x, AskStock)]
