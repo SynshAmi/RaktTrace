@@ -1,0 +1,322 @@
+[
+  {
+    "id": "phrase_01",
+    "text": "haan abhi aa sakta hoon",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_02",
+    "text": "Yes, I can come right away",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_03",
+    "text": "nikal raha hoon abhi 15 min me pahuchunga",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_04",
+    "text": "I'm available now, on my way to centre",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_05",
+    "text": "Haanji main abhi aa raha hoon",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_06",
+    "text": "Yes, I can donate right now",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_07",
+    "text": "Main ready hoon abhi aa sakta hoon",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_08",
+    "text": "Yes coming now",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_09",
+    "text": "Aa raha hoon bhai, 20 minute me pahunch jaunga",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_10",
+    "text": "I am free right now, heading to the blood centre",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_11",
+    "text": "Yes I can give blood immediately",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_12",
+    "text": "Bilkul, abhi nikal raha hoon ghar se",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_13",
+    "text": "Count me in, leaving for the centre right now",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_14",
+    "text": "Haan main blood de sakta hoon abhi",
+    "intent": "YES",
+    "label": "YES_NOW",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_15",
+    "text": "kal subah 8 baje aa jaunga",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow morning at 8:00 AM"
+  },
+  {
+    "id": "phrase_16",
+    "text": "kal 11:55 ke baad free hoon",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow after 11:55 AM"
+  },
+  {
+    "id": "phrase_17",
+    "text": "I can come tomorrow morning at 9am",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow morning at 9:00 AM"
+  },
+  {
+    "id": "phrase_18",
+    "text": "Abhi office me hoon, shaam ko 6 baje aa sakta hoon",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "today at 6:00 PM"
+  },
+  {
+    "id": "phrase_19",
+    "text": "Can donate tomorrow after 10 AM",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow after 10:00 AM"
+  },
+  {
+    "id": "phrase_20",
+    "text": "Aaj possible nahi hai, kal subah 7 baje aa sakta hoon",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow morning at 7:00 AM"
+  },
+  {
+    "id": "phrase_21",
+    "text": "I am available tonight after 9 PM",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tonight after 9:00 PM"
+  },
+  {
+    "id": "phrase_22",
+    "text": "Kal aa paunga subah 10 baje",
+    "intent": "YES",
+    "label": "YES_LATER",
+    "is_later": true,
+    "time": "tomorrow morning at 10:00 AM"
+  },
+  {
+    "id": "phrase_23",
+    "text": "nahi bhai busy",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_24",
+    "text": "Sorry, I cannot come today",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_25",
+    "text": "Main out of town hoon abhi nahi ho payega",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_26",
+    "text": "Not available sorry",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_27",
+    "text": "Health theek nahi hai aaj, nahi aa sakta",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_28",
+    "text": "Can't make it, busy at work",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_29",
+    "text": "Sorry, travelling right now",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_30",
+    "text": "Nahi ho payega aaj",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_31",
+    "text": "Unable to donate currently",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_32",
+    "text": "Abhi nahi aa paunga, sorry",
+    "intent": "NO",
+    "label": "NO",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_33",
+    "text": "STOP",
+    "intent": "STOP",
+    "label": "STOP",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_34",
+    "text": "Please don't message me again, stop",
+    "intent": "STOP",
+    "label": "STOP",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_35",
+    "text": "Kitna time lagega wahan?",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_36",
+    "text": "Where is the blood bank located?",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_37",
+    "text": "Kya platelets donate karna safe hai?",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_38",
+    "text": "Let me check and tell you later",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_39",
+    "text": "Kaun se hospital me aana hai?",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  },
+  {
+    "id": "phrase_40",
+    "text": "???",
+    "intent": "UNCLEAR",
+    "label": "UNCLEAR",
+    "is_later": false,
+    "time": null
+  }
+]
