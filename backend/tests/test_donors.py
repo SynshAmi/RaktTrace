@@ -448,3 +448,26 @@ def test_omw_without_promotion_is_ignored():
     state, rid, a, b, c = covered_with_one_active_two_standby()
     tap(state, b.donor_id, f"P:{b.id}:OMW")
     assert b.status == S.STANDBY
+
+
+# --- Decision summaries ---
+
+def test_deferral_summary_follows_action_order_and_says_why():
+    state, rid = start("s2_dengue_sdp")
+    run_until(state, lambda: any(p.status == S.DEFERRED for p in pledges(state, rid)))
+    decision = state.main.decisions[-1]
+    assert decision.trigger.endswith("DEFERRED")
+    assert decision.actions[0].startswith("promote ") and decision.actions[1].startswith("invite wave 2")
+    assert decision.summary.startswith("Asked standby ")
+    assert "Invited 5 donors (P 79% → 90%), enough to reach 90%." in decision.summary
+    assert decision.summary.endswith("Status COVERED → OPEN.")
+
+
+def test_invite_sentence_reasons():
+    from rakt.agent.planner import Invite, invite_sentence
+    capped = Invite(("d",) * 10, ("",) * 10, 1, 18, False)
+    assert invite_sentence(capped, 0, 0.69) == ("Invited 10 donors (P 0% → 69%); the cost rule wanted more, capped at 10 "
+                                                "per wave; 90% isn't reachable with the donors available.")
+    interior = Invite(("d",) * 4, ("",) * 4, 1, 4, True, False, 0.012)
+    assert invite_sentence(interior, 0.5, 0.8) == ("Invited 4 donors (P 50% → 80%); one more would add +1.2%, "
+                                                   "below the 1.5% bar.")

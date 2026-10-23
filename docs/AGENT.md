@@ -1,6 +1,6 @@
 # RaktTrace: The Agent
 
-How RaktTrace decides. The code in `backend/rakt/agent/`, `llm/`, `baseline/` and `sim/` must match this file. Every number below lives in `config.py`, with the same name.
+How RaktTrace decides. The code in `backend/rakt/agent/`, `llm/`, `baseline/` and `sim/` must match this file. Every number below lives in `config.py`, with the same name. Donor-eligibility numbers (DOMAIN_RULES §2) and simulated-world numbers (§9) are in `config.py` too, labelled with their source.
 
 ---
 
@@ -42,6 +42,9 @@ event (new request, staff tap, donor reply, silence timer, clock step)
 | `QUIET_HOURS` | 22:00–07:00, only for requests with > 24 h left | Design |
 | `SEARCH_RADII_KM` | [5, 10, 20, 40] | Design |
 | `STAFF_GRACE_MIN` | 30 | Design: reminder at expected time + 30; escalate at + 60. Expected times: arrival = booked_at + travel; screening result = arrived_at + VISIT_MIN; ready = collected_at + TEST_MIN (or reserved_at + ISSUE_FROM_STOCK_MIN for stock); stock answer = asked_at + `STOCK_REPLY_TIMEOUT_MIN` (then `EXPIRED`, no reminder) |
+| `STANDBY_PER_UNIT` | 2 | Design: standby donors kept below 2 × units needed from donors (§5 Step 4) |
+| `PROMOTE_TIMEOUT_MIN` | 15 | Design: a promoted standby with no answer is released (§5 Step 5) |
+| `DEFAULT_DEFERRAL_DAYS` | 30 | Design: deferral length when staff give no date (DOMAIN_RULES E10) |
 | **Timing** | | |
 | `TEST_MIN` | PRBC 720, SDP 360 | Whole-blood testing reported 12–24 h; SDP is an assumption |
 | `VISIT_MIN` | PRBC 45, SDP 120 | Assumption: registration + screening + collection |
@@ -49,6 +52,8 @@ event (new request, staff tap, donor reply, silence timer, clock step)
 | `SAFETY_MARGIN_MIN` | 30 | Design |
 | `CITY_SPEED_KMPH` | 18 | Assumption: Bengaluru city traffic |
 | `ROAD_FACTOR` | 1.4 | Assumption: road ≈ 1.4 × straight line |
+| `REPLY_LAG_MIN` | 15 | Assumption: start time for a donor who hasn't replied; also the + 15 in the min pipeline (§4) |
+| `MIN_GO_WINDOW_MIN` | 20 | Design: not invited with a shorter go window (§4, §5.1 filter 7) |
 | **Stock chance** | | |
 | `STOCK_P` | listing ≤ 6 h: 0.85 · 6–24 h: 0.65 · > 24 h: 0.50 | Assumption |
 | **Donor chance** | | |

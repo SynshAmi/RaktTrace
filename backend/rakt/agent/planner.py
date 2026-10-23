@@ -53,6 +53,8 @@ class Invite:
     wave: int
     k_star: int  # what the sizing rule wanted before the per-wave cap
     reachable: bool  # whether some k ≤ K reaches TARGET_P
+    reaches_target: bool = False  # P(k*) ≥ TARGET_P
+    next_gain: float | None = None  # P(k* + 1) − P(k*), None when k* = K
 
 
 @dataclass(frozen=True)
@@ -259,7 +261,9 @@ def plan_invites(store: Store, request: Request, now: datetime, asks: list[AskSt
         return [], p_now, not ranked, False
     wave = max((p.wave for p in request_pledges(store, request)), default=0) + 1
     chosen = ranked[:send]
-    actions.append(Invite(tuple(c.donor_id for c in chosen), tuple(c.why for c in chosen), wave, k_star, reachable))
+    next_gain = curve[k_star + 1] - curve[k_star] if k_star + 1 < len(curve) else None
+    actions.append(Invite(tuple(c.donor_id for c in chosen), tuple(c.why for c in chosen), wave, k_star, reachable,
+                          curve[k_star] >= config.TARGET_P, next_gain))
     return actions, curve[send], False, False
 
 
@@ -341,34 +345,47 @@ def plan(store: Store, request_id: str, now: datetime) -> Plan:
 
 
 def summarise(store: Store, request: Request, actions: list[Action], p_before: float, p_after: float) -> str:
-    sentences = []
-    asks = [a for a in actions if isinstance(a, AskStock)]
+    """One plain sentence per kind of action, in the order the actions run."""
     invites = [a for a in actions if isinstance(a, Invite)]
-    if asks:
-        parts = [f"{store.centres[a.centre_id].name} for {a.units}" for a in asks]
-        tail = "" if invites else f" (P {pct(p_before)} → {pct(p_after)})"
-        sentences.append(f"Asked {join(parts)}{tail}.")
-    for a in invites:
-        n = len(a.donor_ids)
-        text = f"Invited {n} donor{'s' if n != 1 else ''} (P {pct(p_before)} → {pct(p_after)})"
-        if a.k_star > n:
-            rule = "the cost rule wanted more, capped" if config.SIZING == "cost" else "capped"
-            text += f"; {rule} at {config.WAVE_CAP} per wave"
-        if not a.reachable:
-            text += f"; {pct(config.TARGET_P)} isn't reachable with the donors available"
-        sentences.append(text + ".")
+    sentences: dict[type, str] = {}
     for a in actions:
-        if isinstance(a, Promote):
-            name = store.donors[store.pledges[a.pledge_id].donor_id].display_name
-            sentences.append(f"Asked standby {name} to go now.")
-    releases = [a for a in actions if isinstance(a, Release)]
-    if releases:
-        names = [store.centres[store.reservations[a.reservation_id].centre_id].name for a in releases]
-        sentences.append(f"Need covered; released the hold at {join(names)}.")
-    for a in actions:
-        if isinstance(a, SetStatus):
-            sentences.append(f"Status {request.status} → {a.status}.")
-    return " ".join(sentences)
+        kind = type(a)
+        if kind in sentences or kind is FixCentre:
+            continue
+        if kind is AskStock:
+            parts = [f"{store.centres[x.centre_id].name} for {x.units}" for x in actions if isinstance(x, AskStock)]
+            tail = "" if invites else f" (P {pct(p_before)} → {pct(p_after)})"
+            sentences[kind] = f"Asked {join(parts)}{tail}."
+        elif kind is Release:
+            names = [store.centres[store.reservations[x.reservation_id].centre_id].name
+                     for x in actions if isinstance(x, Release)]
+            sentences[kind] = f"Need covered; released the hold at {join(names)}."
+        elif kind is Promote:
+            names = [store.donors[store.pledges[x.pledge_id].donor_id].display_name
+                     for x in actions if isinstance(x, Promote)]
+            sentences[kind] = f"Asked standby {join(names)} to go now."
+        elif kind is Invite:
+            sentences[kind] = invite_sentence(a, p_before, p_after)
+        elif kind is SetStatus:
+            sentences[kind] = f"Status {request.status} → {a.status}."
+    return " ".join(sentences.values())
+
+
+def invite_sentence(a: Invite, p_before: float, p_after: float) -> str:
+    """Says how many were invited and why the wave stopped there."""
+    n = len(a.donor_ids)
+    text = f"Invited {n} donor{'s' if n != 1 else ''} (P {pct(p_before)} → {pct(p_after)})"
+    if a.k_star > n:
+        rule = "the cost rule wanted more, capped" if config.SIZING == "cost" else "capped"
+        text += f"; {rule} at {config.WAVE_CAP} per wave"
+    elif a.reaches_target:
+        text += f", enough to reach {pct(config.TARGET_P)}"
+    elif a.next_gain is not None and config.SIZING == "cost":
+        text += (f"; one more would add +{100 * a.next_gain:.1f}%, below the "
+                 f"{100 * config.DONOR_BURDEN_TAU:.1f}% bar")
+    if not a.reachable:
+        text += f"; {pct(config.TARGET_P)} isn't reachable with the donors available"
+    return text + "."
 
 
 def pct(p: float) -> str:
