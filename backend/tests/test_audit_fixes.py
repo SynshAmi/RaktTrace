@@ -62,8 +62,8 @@ def test_second_request_does_not_inherit_the_s2_script():
     s2 = [p for p in state.main.pledges.values() if p.request_id == rid]
     other = [p for p in state.main.pledges.values() if p.request_id == other_id]
     assert other, "the second request should still invite donors"
-    assert all(bots.latent_for(p.id) is None for p in other)  # no script, and no draws of its own yet (Phase 7)
-    assert all(p.replied_at is None for p in other)
+    own = state.draws[other_id].donors
+    assert all(bots.latent_for(p.id) == own[p.donor_id] for p in other)  # its own outcomes (phase 7.4), never the script
     assert request.status == Q.FULFILLED  # the S2 story itself is unchanged
     assert any(p.status == S.DEFERRED for p in s2) and any(p.status == S.TOO_LATE for p in s2)
 

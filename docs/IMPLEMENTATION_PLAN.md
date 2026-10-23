@@ -130,7 +130,7 @@ Pass: all green + manual checks noted in PROGRESS.
 - a request created during a scenario gets its own reproducible outcomes and never the scenario's script; reset clears scenario history and keeps live identities;
 - benchmark runtime recorded in PROGRESS.
 
-Pass: all green.
+Pass: all green. Manual Telegram checks enabled by the demo clock (S2 stepped with `/demo/step`; a live tap and a Hinglish reply with the LLM on and off; a linked vs an unlinked centre; donor and staff `/reset`; repeated `/start`) are recorded in PROGRESS and finished at the rehearsal.
 
 ## Phase 8: Frontend core (on the live API)
 

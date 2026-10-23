@@ -139,6 +139,18 @@ def forget_donor(chat_id: str) -> str | None:
     return old
 
 
+def release_staff(chat_id: str) -> str | None:
+    """Staff /reset: drop this chat's centre link (the centre itself, its stock and everyone else stay as they are).
+    Returns the centre id, or None if the chat isn't staff."""
+    person = registry.identities.get(chat_id)
+    if person is None or person.role != "staff":
+        return None
+    centre_id = person.centre_id
+    unlink_staff(person)
+    person.role = "none"
+    return centre_id
+
+
 def opt_out(chat_id: str) -> None:
     """STOP: kept across scenario resets for the life of the process."""
     person = registry.identities.get(chat_id)
@@ -174,23 +186,25 @@ def link_chat(start_param: str, chat_id: str, display_name: str) -> str:
     """staff_<centre_id> | family | coord, in a private chat. Returns the bot's reply."""
     person = identity(chat_id, display_name)
     state = store.state
+    if person.role == "staff" and state is not None and person.centre_id in state.main.centres:
+        current = state.main.centres[person.centre_id]
+        if start_param == f"staff_{person.centre_id}":
+            return f"You're already linked as {current.name} staff."
+        return f"You're linked as {current.name} staff. Send /reset to release it first."
     if start_param.startswith("staff_"):
         centre_id = start_param.removeprefix("staff_")
         if state is None or centre_id not in state.main.centres:
             return "That centre link isn't valid."
-        for other in registry.identities.values():  # one staff chat per centre: the newest link wins
-            if other.role == "staff" and other.centre_id == centre_id and other is not person:
-                other.role, other.centre_id = "none", None
-        if person.role == "staff":
-            unlink_staff(person)
+        centre = state.main.centres[centre_id]
+        holder = next((o for o in registry.identities.values()
+                       if o.role == "staff" and o.centre_id == centre_id and o is not person), None)
+        if holder is not None:  # one staff chat per centre, and never a silent takeover
+            return f"{centre.name} already has a linked staff account. Ask them to send /reset first."
         detach_donor(person)
         person.role, person.centre_id = "staff", centre_id
-        centre = state.main.centres[centre_id]
         centre.contact = staff_contact(centre.name, person)
-        return f"You're linked as {centre.name} staff. Cards for this centre will come here."
+        return f"You're linked as {centre.name} staff. Cards for this centre will come here. Send /reset to release it."
     if start_param in ("family", "coord"):
-        if person.role == "staff":
-            unlink_staff(person)
         detach_donor(person)
         for other in registry.identities.values():
             if other.role == start_param and other is not person:

@@ -1,0 +1,84 @@
+{
+ "n": 500,
+ "seed": 2026,
+ "regime": "nominal",
+ "reader": "llm",
+ "policies": [
+  "today",
+  "rakttrace"
+ ],
+ "by_product": {
+  "PRBC": {
+   "n": 250,
+   "today": {
+    "on_time_pct": 83.6,
+    "false_done_pct": 16.0,
+    "donors_messaged": 3.12,
+    "zero_donor_pct": 82.4,
+    "warned_early_pct": 0.0,
+    "median_warning_h": null
+   },
+   "rakttrace": {
+    "on_time_pct": 89.2,
+    "false_done_pct": 0.0,
+    "donors_messaged": 4.25,
+    "zero_donor_pct": 62.8,
+    "warned_early_pct": 100.0,
+    "median_warning_h": 6.45
+   }
+  },
+  "SDP": {
+   "n": 250,
+   "today": {
+    "on_time_pct": 16.4,
+    "false_done_pct": 78.8,
+    "donors_messaged": 14.57,
+    "zero_donor_pct": 15.2,
+    "warned_early_pct": 0.0,
+    "median_warning_h": null
+   },
+   "rakttrace": {
+    "on_time_pct": 30.4,
+    "false_done_pct": 0.0,
+    "donors_messaged": 5.97,
+    "zero_donor_pct": 7.6,
+    "warned_early_pct": 100.0,
+    "median_warning_h": 18.55
+   }
+  }
+ },
+ "today": {
+  "on_time_pct": 50.0,
+  "false_done_pct": 47.4,
+  "donors_messaged": 8.84,
+  "zero_donor_pct": 48.8,
+  "warned_early_pct": 0.0,
+  "median_warning_h": null
+ },
+ "rakttrace": {
+  "on_time_pct": 59.8,
+  "false_done_pct": 0.0,
+  "donors_messaged": 5.11,
+  "zero_donor_pct": 35.2,
+  "warned_early_pct": 100.0,
+  "median_warning_h": 16.56
+ },
+ "ci": {
+  "today": {
+   "on_time_diff": {
+    "mean": 0.098,
+    "lo": 0.0595,
+    "hi": 0.1365,
+    "excludes_zero": true
+   },
+   "donors_diff": {
+    "mean": -3.734,
+    "lo": -4.8099,
+    "hi": -2.6581,
+    "excludes_zero": true
+   }
+  }
+ },
+ "runtime_s": 23.7,
+ "note": "Simulated synthetic world; compares policies inside the model, not real-world evidence."
+}

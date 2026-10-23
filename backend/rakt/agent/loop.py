@@ -9,26 +9,32 @@ from rakt.agent.escalation import Alert, Fail, Widen
 from rakt.agent.planner import (
     ACTIVE_LIKE, AskStock, FixCentre, Invite, NotifyFamily, Plan, Promote, Release, SetStatus, StandDown,
 )
+from rakt.baseline import policy as today
 from rakt.channels import router
 from rakt.clock import Timer
-from rakt.sim.scenarios import load_scenario
+from rakt.config import settings
 from rakt.domain.geo import km, travel_min
 from rakt.domain.timing import donor_timing, stock_ready_at
 from rakt.models import (
-    BloodGroup, Button, Contact, Decision, Inbound, Intent, Message, Pledge, PledgeStatus, Product, ReplyRead,
+    BloodGroup, Button, Channel, Contact, Decision, Inbound, Intent, Message, Pledge, PledgeStatus, Product, ReplyRead,
     Request, RequestStatus, Reservation, ReservationStatus,
 )
+from rakt.sim.scenarios import load_scenario
+from rakt.sim.world import draw_new_request
 
 R = ReservationStatus
 S = PledgeStatus
 AWAITING_REPLY = {S.INVITED, S.NO_REPLY}
 OPEN_STATUSES = {RequestStatus.OPEN, RequestStatus.COVERED, RequestStatus.SECURED}
+_source: Channel | None = None  # channel of the inbound event being handled, for the decision log
 
 
 def reset_scenario(scenario_id: str) -> None:
     """A new world from the scenario, with every linked live identity attached (fresh history), then started."""
+    from rakt.channels import telegram_bot  # imported here: the bot module imports this one
     store.set_state(load_scenario(scenario_id))
     live.attach(store.state)
+    telegram_bot.new_run()  # cards from the previous run can't act on this one
     for request_id in list(store.state.main.requests):
         start(request_id)
 
@@ -38,7 +44,22 @@ def start(request_id: str) -> None:
     request = state.main.requests[request_id]
     state.clock.schedule(request.created_at + (request.deadline_at - request.created_at) / 2, "halftime", request_id)
     state.clock.schedule(request.deadline_at, "deadline", request_id)
+    lane = state.lanes["today"]
+    state.baselines[request_id] = today.run(lane, lane.requests[request_id],
+                                            lambda donor_id, order: baseline_latent(request_id, donor_id, order))
     replan(request_id, "new request")
+
+
+def baseline_latent(request_id: str, donor_id: str, order: int):
+    """The same outcomes as the rakttrace lane: the scenario script by invite order (scenario request only),
+    otherwise the request's pre-drawn outcome for that donor."""
+    state = store.state
+    if state.scenario is not None and request_id == state.scenario_request_id:
+        for scripted in state.scenario.donor_script:
+            if scripted.invite_order == order:
+                return scripted.latent()
+    draws = state.draws.get(request_id)
+    return draws.donors.get(donor_id) if draws else None
 
 
 def create_request(group: BloodGroup, product: Product, units: int, hospital_id: str, deadline_at: datetime,
@@ -61,6 +82,10 @@ def create_request(group: BloodGroup, product: Product, units: int, hospital_id:
     request = Request(id=f"RT-{number}", group=group, product=product, units=units, hospital_id=hospital_id,
                       deadline_at=deadline_at, created_at=now, radius_km=config.SEARCH_RADII_KM[0], family=family)
     s.requests[request.id] = request
+    seed = state.scenario.seed if state.scenario else settings.random_seed
+    sim_donors = [d for d, donor in s.donors.items() if not donor.telegram_demo]
+    state.draws[request.id] = draw_new_request(seed, request.id, list(s.centres), sim_donors, product, now)
+    state.lanes["today"].requests[request.id] = request.model_copy(deep=True)
     start(request.id)
     return request.id, False
 
@@ -90,6 +115,68 @@ def reset_donor(chat_id: str) -> bool:
     for request_id in dict.fromkeys(touched):
         replan(request_id, f"{donor.display_name} left the live demo (/reset)", True)
     return True
+
+
+# --- Live staff links: hand open cards between real and simulated staff ---
+
+def handed_over(fn, *args):
+    """Run a registry change; any centre whose staff contact changed gets its open cards handed over."""
+    state = store.state
+    before = {cid: c.contact for cid, c in state.main.centres.items()} if state else {}
+    result = fn(*args)
+    if state is not None:
+        for cid, contact in before.items():
+            if state.main.centres[cid].contact != contact:
+                handover(cid)
+    return result
+
+
+def handover(centre_id: str) -> None:
+    """Simulated staff answers already scheduled for this centre are dropped; every card still waiting for a tap is
+    sent again to whoever now holds the centre (Telegram staff, or the simulated staff, who then answer it)."""
+    state = store.state
+    s, now = state.main, state.clock.now
+    for timer in state.clock.pending():
+        if timer.kind == "sim_inbound" and timer.payload.get("sender_id") == centre_id:
+            state.clock.cancel(timer)
+    centre = s.centres[centre_id]
+    for res in s.reservations.values():
+        request = s.requests[res.request_id]
+        if res.centre_id != centre_id or request.status not in OPEN_STATUSES:
+            continue
+        if res.status == R.PENDING:
+            router.deliver(messages.staff_hold(request, res, centre, s.hospitals[request.hospital_id]))
+        elif res.status == R.RESERVED and res.ready_at and res.ready_at <= now:
+            router.deliver(messages.staff_ready(request, centre, "R", res.id, None))
+    for pledge in s.pledges.values():
+        request = s.requests[pledge.request_id]
+        if request.collection_centre_id != centre_id or request.status not in OPEN_STATUSES:
+            continue
+        donor = s.donors[pledge.donor_id]
+        if pledge.status == S.ACTIVE:
+            eta = max(pledge.available_from or now, now) + timedelta(minutes=travel_min(donor, centre))
+            router.deliver(messages.staff_incoming(request, pledge, donor, centre, s.hospitals[request.hospital_id], eta))
+        elif pledge.status == S.ARRIVED:
+            router.deliver(messages.staff_visit(request, pledge, donor, centre))
+        elif pledge.status == S.COLLECTED and pledge.ready_at and pledge.ready_at <= now:
+            router.deliver(messages.staff_ready(request, centre, "P", pledge.id, pledge.booking_code))
+
+
+def link_staff_or_role(start_param: str, chat_id: str, display_name: str) -> str:
+    return handed_over(live.link_chat, start_param, chat_id, display_name)
+
+
+def reset_staff(chat_id: str) -> str | None:
+    """Staff /reset: release only this chat's centre link; the simulated staff take the centre's cards again."""
+    return handed_over(live.release_staff, chat_id)
+
+
+def join_demo(chat_id: str, name: str) -> tuple[str, bool]:
+    return handed_over(live.join_demo, chat_id, name)
+
+
+def register_donor(chat_id: str, name: str, profile) -> str:
+    return handed_over(live.register_donor, chat_id, name, profile)
 
 
 def cancel(request_id: str) -> None:
@@ -143,6 +230,8 @@ def replan(request_id: str, trigger: str, event_changed_state: bool = False) -> 
         elif isinstance(action, SetStatus):
             request.status = action.status
     if result.actions or event_changed_state:
+        if _source == Channel.TELEGRAM:
+            trigger += " (via Telegram)"
         s.decisions.append(Decision(
             id=s.next_id("dec"), request_id=request_id, at=now, trigger=trigger, p_before=result.p_before,
             p_after=result.p_after, status=request.status, actions=[describe(a, s) for a in result.actions],
@@ -434,6 +523,15 @@ def name(pledge: Pledge) -> str:
 
 def handle_inbound(msg: Inbound) -> None:
     """Called by the bot and by POST /api/sim/reply."""
+    global _source
+    _source = msg.channel
+    try:
+        route_inbound(msg)
+    finally:
+        _source = None
+
+
+def route_inbound(msg: Inbound) -> None:
     button = msg.button_id or ""
     kind, _, rest = button.partition(":")
     if kind == "R":
@@ -468,6 +566,11 @@ def record_inbound(msg: Inbound, read_by: str | None) -> None:
 
 # --- Staff: stock ---
 
+def from_centre(centre, sender_id: str) -> bool:
+    """Linked Telegram staff, or the centre's sim phone (the simulated staff and the dashboard's fallback)."""
+    return sender_id in (centre.id, centre.contact.phone, centre.contact.chat_id)
+
+
 def stock_reply(reservation_id: str, choice: str, sender_id: str) -> None:
     """Staff tap: ALL, NONE, SOME (then N{k}). Units are kept in arrival order, trimmed to what's needed."""
     state = store.state
@@ -476,7 +579,7 @@ def stock_reply(reservation_id: str, choice: str, sender_id: str) -> None:
     if res is None or res.status != R.PENDING:
         return  # late answer for a released or expired hold
     centre = s.centres[res.centre_id]
-    if sender_id not in (centre.contact.phone, centre.contact.chat_id):
+    if not from_centre(centre, sender_id):
         return
     request = s.requests[res.request_id]
     if choice == "SOME":
@@ -541,20 +644,41 @@ def donor_button(pledge_id: str, choice: str, sender_id: str) -> None:
         replan(pledge.request_id, f"{name(pledge)} can't make it", True)
 
 
-def donor_text(msg: Inbound) -> None:
-    """Free text from a donor: the reader decides what it says; the planner decides what happens."""
+def text_target(msg: Inbound) -> tuple[str, datetime] | None:
+    """(pledge id, deadline) a donor's free text answers: their latest invite still awaiting a reply."""
     s = store.state.main
     awaiting = [p for p in s.pledges.values() if p.status in AWAITING_REPLY and sender_owns(p, msg.sender_id)]
     if not awaiting:
+        return None
+    pledge = max(awaiting, key=lambda p: p.invited_at)
+    return pledge.id, s.requests[pledge.request_id].deadline_at
+
+
+def apply_text(msg: Inbound, pledge_id: str, reading: ReplyRead) -> None:
+    """The second half of a free-text reply, after it was read (callers may read it outside store.lock)."""
+    global _source
+    _source = msg.channel
+    try:
+        pledge = store.state.main.pledges.get(pledge_id)
+        if pledge is None or pledge.status not in AWAITING_REPLY:
+            record_inbound(msg, reading.read_by)  # answered or released meanwhile
+            return
+        if reading.read_by == "llm" and reading.confidence < config.LLM_MIN_CONFIDENCE:
+            reading = ReplyRead(intent=Intent.UNCLEAR, confidence=reading.confidence, read_by="llm")
+        record_inbound(msg, reading.read_by)
+        donor_reply(pledge, reading, msg.text)
+    finally:
+        _source = None
+
+
+def donor_text(msg: Inbound) -> None:
+    """Free text from a donor: the reader decides what it says; the planner decides what happens."""
+    target = text_target(msg)
+    if target is None:
         record_inbound(msg, None)
         return
-    pledge = max(awaiting, key=lambda p: p.invited_at)
-    request = s.requests[pledge.request_id]
-    reading = llm.read_reply(msg.text, request.deadline_at, msg.at)
-    if reading.read_by == "llm" and reading.confidence < config.LLM_MIN_CONFIDENCE:
-        reading = ReplyRead(intent=Intent.UNCLEAR, confidence=reading.confidence, read_by="llm")
-    record_inbound(msg, reading.read_by)
-    donor_reply(pledge, reading, msg.text)
+    pledge_id, deadline = target
+    apply_text(msg, pledge_id, llm.read_reply(msg.text, deadline, msg.at))
 
 
 def donor_reply(pledge: Pledge, reading: ReplyRead, text: str | None) -> None:
@@ -604,7 +728,7 @@ def visit_tap(pledge_id: str, choice: str, sender_id: str) -> None:
         return
     request = s.requests[pledge.request_id]
     centre, donor = s.centres[request.collection_centre_id], s.donors[pledge.donor_id]
-    if sender_id not in (centre.contact.phone, centre.contact.chat_id):
+    if not from_centre(centre, sender_id):
         return
 
     if pledge.status == S.ACTIVE and choice == "ARRIVED":
@@ -644,7 +768,7 @@ def ready_tap(target: str, target_id: str, choice: str, sender_id: str) -> None:
         return
     request = s.requests[item.request_id]
     centre = s.centres[item.centre_id] if target == "R" else s.centres[request.collection_centre_id]
-    if sender_id not in (centre.contact.phone, centre.contact.chat_id):
+    if not from_centre(centre, sender_id):
         return
     if target == "P" and item.status == S.COLLECTED:
         item.status = S.READY if choice == "READY" else S.FAILED_TEST
@@ -674,4 +798,4 @@ def next_donation(donor, product: Product, at: datetime) -> datetime:
 
 def link_chat(start_param: str, chat_id: str, display_name: str) -> str:
     """staff_<centre_id> | family | coord deep links (BUILD §5.4)."""
-    return live.link_chat(start_param, chat_id, display_name)
+    return link_staff_or_role(start_param, chat_id, display_name)

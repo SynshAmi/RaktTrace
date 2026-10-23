@@ -256,3 +256,19 @@ def draw_request(world: World, donor_ids: list[str], seed: int, key: str, produc
         },
         donors={d: draw_donor(seed, key, d, factor, product, created_at, pools) for d in donor_ids},
     )
+
+
+def draw_new_request(seed: int, key: str, centre_ids: list[str], donor_ids: list[str], product: Product,
+                     created_at: datetime) -> RequestDraws:
+    """Outcomes for a request created after the world exists (dashboard or API): its own tonight factor, staff
+    delays and donor outcomes, keyed by its request id. Stock stays the world's (no new listings)."""
+    factor = tonight_factor(rng_for(seed, key, "tonight"))
+    pools = phrase_pools(load_phrases())
+    return RequestDraws(
+        request_key=key,
+        tonight_factor=factor,
+        stock=[],
+        staff_delay_min={cid: round(rng_for(seed, key, "staff", cid).uniform(*config.SIM_STAFF_REPLY_MIN), 1)
+                         for cid in centre_ids},
+        donors={d: draw_donor(seed, key, d, factor, product, created_at, pools) for d in donor_ids},
+    )

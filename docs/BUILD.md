@@ -188,7 +188,9 @@ POST /requests/{id}/cancel    → RequestView
 
 **Simulated phones**
 ```
-GET  /sim/phones               → [{id, name, role: "donor"|"staff"|"family", unread, last_at}]
+GET  /sim/phones               → [{id, name, role: "donor"|"staff"|"family"|"coordinator", unread, last_at}]
+# every inbox: sim people, and linked Telegram chats (their messages are kept for the dashboard; a failed send shows
+# here with channel "sim"). Reading a phone's messages marks them read.
 GET  /sim/phones/{id}/messages → [Message]
 POST /sim/reply                {phone_id, button_id?, text?} → {ok}
 ```
@@ -216,8 +218,15 @@ POST /benchmark          {n: 500, seed: 2026, reader: "llm"|"rules",
            broadcast?: {...}, threshold?: {...}},          # each value = rakttrace minus that policy
      calibration?: {brier, bins: [{p_mean, freq, n}]}}
 Metrics = {on_time_pct, false_done_pct, donors_messaged, zero_donor_pct, warned_early_pct, median_warning_h}
+CI value = {mean, lo, hi, excludes_zero}
+# built: the essential tier only (policies ⊆ {today, rakttrace}, regime "nominal"; anything else → 422).
+# Also returned: seed, regime, reader, policies, runtime_s, note. Runs in a separate process (never touches the live
+# demo, never calls an LLM provider or Telegram) and saves backend/bench/results_nominal_<seed>.json.
+GET  /benchmark/cached   ?seed=2026&regime=nominal → the saved run (the committed seed-2026, N = 500 run), or 404
 ```
 The frontend renders the optional parts only if present.
+
+**Errors.** FastAPI's `{"detail": ...}` body: 404 unknown request, phone or scenario; 409 cancelling a closed request; 422 invalid input (unknown hospital, deadline not after the sim clock, a reply with neither button nor text, `/demo/advance` minutes outside 0–1440). `POST /requests` with `family: "sim"` creates the sim phone `family_<request id>`; `"telegram"` uses the linked family chat if there is one (otherwise a sim placeholder that a later `?start=family` link replaces). `POST /demo/reset` returns the scenario's request id. Each donor in RequestView also carries `live` (a linked Telegram donor).
 
 **Telegram button ids**
 | Pattern | Who |
@@ -269,9 +278,13 @@ DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("n
 ```
 On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact) in the rakttrace lane only, with fresh scenario history and their opt-out kept.
 
-Bot commands: `/start`, `/stop`, `/reset`. `uv run python -m rakt.sim.phrase_cache` builds `sim/phrase_cache.json` in one bounded pass (paced, stops at the first 429 or if quota headers are missing or too low); the cache is committed, so tests and benchmarks never call the API.
+Bot commands: `/start`, `/stop`, `/reset` (PRODUCT §2.2). Agent cards (`P:`, `R:`, `V:`, `D:` buttons) sent before the latest demo reset are rejected as stale. `uv run python -m rakt.sim.phrase_cache` builds `sim/phrase_cache.json` in one bounded pass (paced, stops at the first 429 or if quota headers are missing or too low); the cache is committed, so tests and benchmarks never call the API.
 
-Telegram handlers run the bot's logic in a worker thread holding `store.lock`; anything else that changes state from outside the clock (the phase 7 API) must hold it too.
+**Locking.** One `store.lock` (an RLock) guards all state. Every API endpoint holds it while it reads or changes state (so a 2 s poll always sees a consistent snapshot); the auto clock and Telegram handlers take it too. LLM reads happen outside it: `loop.text_target` (locked) → `llm.read_reply` (unlocked) → `loop.apply_text` (locked); `POST /requests/parse` reads the plea unlocked. Nothing calls the API while holding the lock.
+
+**Staff links and the simulated staff (hybrid).** A centre with no linked chat is run by the simulated staff. Linking (`?start=staff_c_a`, `staff_c_b`, …) or `/reset` from a staff chat calls `loop.handover(centre)`: answers the simulated staff had scheduled for that centre are dropped and every card still waiting is sent again to whoever now holds the centre. A centre always accepts taps from its own sim phone id (the simulated staff, or the dashboard as a manual fallback); status checks make a second tap on an answered card a no-op. A staff card whose Telegram send fails is shown on the sim phone and answered by the simulated staff; a live donor's failed message is never simulated.
+
+**New requests (phase 7.4).** `loop.create_request` draws the request's own outcomes (`world.draw_new_request`: tonight factor, staff delays, donor outcomes keyed by the request id) and copies the request into the today lane; `loop.start` schedules its timers and works out today's workflow. A scenario's donor script only ever applies to the scenario's own request.
 
 **Ownership:**
 - core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);
