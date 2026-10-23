@@ -65,6 +65,33 @@ def create_request(group: BloodGroup, product: Product, units: int, hospital_id:
     return request.id, False
 
 
+WITHDRAWN = {S.INVITED: S.RELEASED, S.NO_REPLY: S.RELEASED, S.STANDBY: S.RELEASED, S.ACTIVE: S.NO_SHOW}
+
+
+def reset_donor(chat_id: str) -> bool:
+    """/reset from a live donor: leave every open request the way a "can't make it" would (ACTIVE → NO_SHOW, so a
+    standby is promoted; invited or standby → RELEASED). Arrived or collected units stay with the centre staff.
+    The old donor record stays in the pool but is never invited again. Returns whether there was a donor to reset."""
+    donor_id = live.forget_donor(chat_id)
+    if donor_id is None or store.state is None:
+        return donor_id is not None
+    s = store.state.main
+    donor = s.donors.get(donor_id)
+    if donor is None:
+        return True
+    donor.consent = False
+    touched = []
+    for pledge in s.pledges.values():
+        if (pledge.donor_id == donor_id and pledge.status in WITHDRAWN
+                and s.requests[pledge.request_id].status in OPEN_STATUSES):
+            s.promotions.pop(pledge.id, None)
+            pledge.status = WITHDRAWN[pledge.status]
+            touched.append(pledge.request_id)
+    for request_id in dict.fromkeys(touched):
+        replan(request_id, f"{donor.display_name} left the live demo (/reset)", True)
+    return True
+
+
 def cancel(request_id: str) -> None:
     """Coordinator cancels: holds released, donors stood down (PRODUCT §3.7)."""
     s = store.state.main

@@ -73,6 +73,8 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 - A scenario reset keeps identities and profile answers, rebuilds the world with the currently linked live donors, and clears their scenario history (invites, pledges, deferrals, donations). STOP (a reply or `/stop`) is kept across resets until the person explicitly re-joins (Join the live demo or a finished profile).
 - The registry is in memory: a server restart clears it (including STOP), and participants re-join.
 - If the bot is off or Telegram can't be reached, messages for a live contact show on the dashboard's sim phone instead.
+- **Commands:** `/start` (onboarding or a deep link), `/stop` (opt out), `/reset` (clear my donor profile).
+- **`/reset`** clears only the sender's donor profile and half-finished Q&A, never the scenario or anyone else. If they are on an open request, they leave it the way "can't make it" does: an active donor becomes `NO_SHOW` (so a standby is promoted), an invited or standby donor is released; units already arrived or collected stay with the centre staff. Their old donor record stays in the pool but is never invited again; the next join or finished profile gets a fresh donor record. STOP is not lifted by `/reset`, only by joining again. A staff, family or coordinator chat is not changed by `/reset`.
 - All profiles are synthetic; nothing collects a home address or real medical history, and the demo is not a verified donor registry. Screening stays with the blood centre.
 
 ## 3. Flows

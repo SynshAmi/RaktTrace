@@ -258,6 +258,9 @@ link_chat(start_param, chat_id, display_name) -> str     # staff_<centre_id> | f
 register_donor(chat_id, name, profile: DonorProfile) -> str   # both onboarding routes end here; returns the donor id
 join_demo(chat_id, name) -> (donor_id, resumed)          # the next S2 template, or the profile already registered
 opt_out(chat_id)                                         # STOP: kept across resets until the person re-joins
+forget_donor(chat_id) -> donor_id | None                 # /reset: drop the donor association (STOP untouched)
+loop.reset_donor(chat_id) -> bool                        # /reset: withdraw from open requests (ACTIVE → NO_SHOW,
+                                                         #   invited/standby → RELEASED), re-plan, old record never invited
 attach(state)                                            # after a scenario (re)load: re-add live donors, staff, family
 coordinator_contact() -> Contact                         # the linked coordinator chat, else the sim phone
 loop.reset_scenario(scenario_id)                         # load + attach + start (phase 7's reset endpoint calls it)
@@ -265,6 +268,8 @@ DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("n
                lat?, lon?                                # set by the demo templates; otherwise the area's centre
 ```
 On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact) in the rakttrace lane only, with fresh scenario history and their opt-out kept.
+
+Bot commands: `/start`, `/stop`, `/reset`. `uv run python -m rakt.sim.phrase_cache` builds `sim/phrase_cache.json` in one bounded pass (paced, stops at the first 429 or if quota headers are missing or too low); the cache is committed, so tests and benchmarks never call the API.
 
 Telegram handlers run the bot's logic in a worker thread holding `store.lock`; anything else that changes state from outside the clock (the phase 7 API) must hold it too.
 

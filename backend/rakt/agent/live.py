@@ -128,6 +128,17 @@ def join_demo(chat_id: str, name: str) -> tuple[str, bool]:
     return register_donor(chat_id, name, template), False
 
 
+def forget_donor(chat_id: str) -> str | None:
+    """/reset: drop this chat's donor association and profile; returns the old donor id (None if there was none).
+    STOP stays as it was; the next join or finished profile gets a fresh donor id."""
+    person = registry.identities.get(chat_id)
+    if person is None or person.role != "donor":
+        return None
+    old = person.donor_id
+    person.role, person.profile, person.donor_id = "none", None, None
+    return old
+
+
 def opt_out(chat_id: str) -> None:
     """STOP: kept across scenario resets for the life of the process."""
     person = registry.identities.get(chat_id)

@@ -81,7 +81,7 @@ def test_llm_reading_is_used_and_checked(monkeypatch):
     assert llm.read_reply("maybe", DEADLINE, NOW).intent == Intent.UNCLEAR  # below LLM_MIN_CONFIDENCE
 
     monkeypatch.setattr(client, "complete_json", lambda s, u: {"intent": "PERHAPS", "confidence": 0.9})
-    assert llm.read_reply("nahi bhai busy", DEADLINE, NOW).read_by == "rules"  # nonsense JSON → rules
+    assert llm.read_reply("nahi yaar, aaj busy hoon", DEADLINE, NOW).read_by == "rules"  # uncached + nonsense JSON → rules
 
 
 def test_llm_plea_draft_keeps_only_known_values(monkeypatch):

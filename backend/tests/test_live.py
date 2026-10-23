@@ -278,3 +278,103 @@ def test_unknown_staff_link():
     reset("s2_dengue_sdp")
     assert bot.on_start(STAFF, "X", "staff_c_zz", private=True)[0] == "That centre link isn't valid."
     assert STAFF not in live.registry.identities or live.registry.identities[STAFF].role == "none"
+
+
+# --- /reset (donor profile only) ---
+
+def active_judge_with_two_standbys():
+    """S2: the judge says yes first (ACTIVE); the scripted sim donors then fill two standby places."""
+    state, rid = reset("s2_dengue_sdp")
+    donor_id, _ = join(JUDGE)
+    first_wave(state)
+    judge = pledge_of(state, donor_id)
+    bot.on_callback(JUDGE, "Judge A.", f"P:{judge.id}:YES")
+    run_until(state, lambda: sum(p.status == S.STANDBY for p in state.main.pledges.values()) == 2)
+    return state, rid, donor_id, judge
+
+
+def test_reset_during_an_active_request_withdraws_and_promotes():
+    state, rid, donor_id, judge = active_judge_with_two_standbys()
+    request = state.main.requests[rid]
+    assert judge.status == S.ACTIVE and request.status == Q.COVERED
+    text, buttons = bot.on_reset(JUDGE)
+    assert text.startswith("Your donor profile is cleared") and [b.id for b in buttons] == ["O:JOIN", "O:CREATE"]
+    assert judge.status == S.NO_SHOW  # withdrawn the way "can't make it" is
+    assert len(state.main.promotions) == 1  # Step 5 asks a standby to go now
+    assert request.status == Q.OPEN and request.status != Q.FULFILLED
+    assert state.main.decisions[-1].trigger.endswith("left the live demo (/reset)")
+    old = state.main.donors[donor_id]
+    assert old.consent is False and donor_id in state.main.donors  # kept for history, never invited again
+    assert live.registry.identities[JUDGE].role == "none" and live.registry.identities[JUDGE].profile is None
+
+
+def test_old_association_gets_no_more_invitations():
+    state, rid, donor_id, judge = active_judge_with_two_standbys()
+    bot.on_reset(JUDGE)
+    run_all(state)
+    assert [p for p in state.main.pledges.values() if p.donor_id == donor_id] == [judge]
+
+
+def test_reset_without_a_running_request_just_clears_the_profile():
+    state, rid = reset("s1_surgery_tonight")
+    run_all(state)  # S1 fulfilled: nothing open
+    donor_id, _ = join(JUDGE)
+    decisions = len(state.main.decisions)
+    text, buttons = bot.on_reset(JUDGE)
+    assert text.startswith("Your donor profile is cleared") and buttons
+    assert len(state.main.decisions) == decisions  # nothing to withdraw, nothing re-planned
+    assert live.registry.identities[JUDGE].donor_id is None
+
+
+def test_repeated_reset_is_safe():
+    state, rid, donor_id, judge = active_judge_with_two_standbys()
+    bot.on_reset(JUDGE)
+    snapshot = ({k: p.status for k, p in state.main.pledges.items()}, dict(state.main.promotions),
+                len(state.main.decisions), state.main.requests[rid].status)
+    text, buttons = bot.on_reset(JUDGE)
+    assert text.startswith("You don't have a donor profile yet") and buttons
+    assert snapshot == ({k: p.status for k, p in state.main.pledges.items()}, dict(state.main.promotions),
+                        len(state.main.decisions), state.main.requests[rid].status)
+    assert bot.on_reset("unknown-chat")[0].startswith("You don't have a donor profile yet")
+
+
+def test_reset_leaves_other_donors_alone():
+    state, rid = reset("s2_dengue_sdp")
+    judge_id, _ = join(JUDGE)
+    other_id, _ = join(OTHER, "Judge C.")
+    first_wave(state)
+    other = pledge_of(state, other_id)
+    bot.on_callback(OTHER, "Judge C.", f"P:{other.id}:YES")
+    assert other.status == S.ACTIVE
+    bot.on_reset(JUDGE)
+    assert other.status == S.ACTIVE and state.main.donors[other_id].consent
+    assert live.registry.identities[OTHER].role == "donor"
+
+
+def test_rejoining_after_reset_gets_a_fresh_profile_and_can_be_invited():
+    state, rid = reset("s2_dengue_sdp")
+    old_id, _ = join(JUDGE)
+    bot.on_reset(JUDGE)
+    new_id, text = join(JUDGE)
+    assert new_id != old_id and not text.startswith("Welcome back")  # a new template, not the old profile
+    assert old_id in state.main.donors and new_id in state.main.donors
+    wave = first_wave(state)
+    assert pledge_of(state, new_id) in wave and pledge_of(state, old_id) is None
+
+
+def test_reset_keeps_stop_until_an_explicit_rejoin():
+    state, rid = reset("s2_dengue_sdp")
+    donor_id, _ = join(JUDGE)
+    bot.on_stop(JUDGE)
+    text, _ = bot.on_reset(JUDGE)
+    assert "still opted out" in text and live.registry.identities[JUDGE].opted_out
+    new_id, _ = join(JUDGE)  # joining again is the explicit opt-in
+    assert not live.registry.identities[JUDGE].opted_out and not state.main.donors[new_id].opted_out
+
+
+def test_reset_does_not_touch_staff_links():
+    state, rid = reset("s2_dengue_sdp")
+    bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
+    text, buttons = bot.on_reset(STAFF)
+    assert "only clears donor profiles" in text and buttons == []
+    assert state.main.centres["c_b"].contact.chat_id == STAFF

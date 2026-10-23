@@ -74,7 +74,8 @@ def on_start(chat_id: str, name: str, param: str, private: bool) -> Reply:
         return (f"Welcome back, you're registered as a synthetic {describe(person.profile)}. Keep it with "
                 "\"Join the live demo\", or answer a few questions to change it.", choices())
     return ("Welcome to RaktTrace, a live demo of an agent that coordinates urgent blood requests. "
-            "Join with a ready-made synthetic donor profile, or create your own in a few taps.", choices())
+            "Join with a ready-made synthetic donor profile, or create your own in a few taps. "
+            "Send /reset to start over, or /stop to stop requests.", choices())
 
 
 def on_callback(chat_id: str, name: str, data: str) -> Reply | None:
@@ -117,6 +118,19 @@ def on_text(chat_id: str, text: str) -> Reply | None:
         return "Please tap one of the buttons above, or send /start to begin again.", []
     loop.handle_inbound(Inbound(channel=Channel.TELEGRAM, sender_id=chat_id, text=text, at=store.state.clock.now))
     return None
+
+
+def on_reset(chat_id: str) -> Reply:
+    """Clear this chat's donor profile (never the scenario, never anyone else) and offer the two choices again."""
+    _onboarding.pop(chat_id, None)
+    person = live.registry.identities.get(chat_id)
+    if person is not None and person.role in ("staff", "family", "coord"):
+        return f"This chat is linked as {person.role}; /reset only clears donor profiles.", []
+    had_profile = loop.reset_donor(chat_id)
+    head = "Your donor profile is cleared." if had_profile else "You don't have a donor profile yet."
+    if person is not None and person.opted_out:
+        head += " You're still opted out (STOP); joining again opts you back in."
+    return head + " Choose how to take part:", choices()
 
 
 def on_stop(chat_id: str) -> Reply:
@@ -189,6 +203,11 @@ async def handle_stop(update, context) -> None:
     await reply(update, await asyncio.to_thread(locked, on_stop, chat_id))
 
 
+async def handle_reset(update, context) -> None:
+    chat_id, _ = who(update)
+    await reply(update, await asyncio.to_thread(locked, on_reset, chat_id))
+
+
 async def handle_button(update, context) -> None:
     query = update.callback_query
     await query.answer()
@@ -210,6 +229,7 @@ async def start() -> None:
         app = Application.builder().token(settings.telegram_bot_token).build()
         app.add_handler(CommandHandler("start", handle_start))
         app.add_handler(CommandHandler("stop", handle_stop))
+        app.add_handler(CommandHandler("reset", handle_reset))
         app.add_handler(CallbackQueryHandler(handle_button))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
         await app.initialize()
