@@ -159,6 +159,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 | `donor_not_needed` | Thank you! Enough donors are already lined up for {code}, so you're not needed this time. Stay rested for the next one 💙 | — |
 | `donor_stand_down` | Blood for {code} is arranged. You're not needed this time and stay rested for the next one. Thank you 💙 | — |
 | `donor_thanks_collected` | Thank you for donating today ❤️ You can donate again from {next_date}. | — |
+| `donor_closed` | {code} is closed, so you're not needed for it any more. Thank you for being ready 💙 (sent on cancel, or when the deadline passes) | — |
 | `donor_unclear` | Sorry, I didn't get that. Please tap one of the buttons above 🙏 | — |
 
 `{next_date}` follows DOMAIN_RULES §2: after whole blood, 90/120 days; after platelets, the earliest next donation of any kind (48 h for platelets).

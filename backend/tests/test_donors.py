@@ -172,7 +172,7 @@ def test_s2_bookkeeping_after_the_run():
         waves.setdefault(p.wave, []).append(p)
     assert all(len(w) <= config.WAVE_CAP for w in waves.values())
     assert len(pledges(state, rid)) <= config.REQUEST_DONOR_CAP
-    assert state.main.requests[rid].status == RequestStatus.SECURED
+    assert state.main.requests[rid].status == RequestStatus.FULFILLED  # staff confirmed the unit ready
 
 
 # --- Requests needing more than one unit ---

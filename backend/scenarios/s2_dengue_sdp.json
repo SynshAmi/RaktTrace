@@ -4,7 +4,7 @@
   "seed": 42,
   "now": "2026-10-24T22:40:00+05:30",
   "request": {"group": "O_POS", "product": "SDP", "units": 1, "hospital_id": "h_city",
-              "deadline_at": "2026-10-25T14:00:00+05:30"},
+              "deadline_at": "2026-10-25T14:00:00+05:30", "family": true},
   "notes": [
     "Centre A lists 1 O+ SDP (15 h old) but has 0; no other centre lists O+ SDP.",
     "Centre B (City General's own centre, apheresis) is the collection centre.",

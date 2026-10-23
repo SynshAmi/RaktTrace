@@ -23,7 +23,10 @@ def read_reply(text: str, deadline: datetime, now: datetime) -> ReplyRead:
 
 
 def write_brief(facts: dict) -> str:
-    return "\n".join(f"{key}: {value}" for key, value in facts.items())
+    try:
+        return rules.brief_template(facts)
+    except Exception:
+        return "\n".join(f"{key}: {value}" for key, value in facts.items())
 
 
 def set_enabled(on: bool) -> None:

@@ -22,6 +22,7 @@ def react(outgoing: Outgoing) -> None:
         "donor_promote": answer_promote,
         "staff_incoming": answer_incoming,
         "staff_visit": answer_visit,
+        "staff_ready": answer_ready,
     }
     if outgoing.kind in handlers:
         handlers[outgoing.kind](outgoing)
@@ -123,3 +124,14 @@ def answer_visit(outgoing: Outgoing) -> None:
     choice = "COLLECTED" if latent.will_pass else "DEFERRED"
     later(config.VISIT_MIN[request.product], request.collection_centre_id, button_id=f"V:{pledge_id}:{choice}",
           request_id=request.id)
+
+
+def answer_ready(outgoing: Outgoing) -> None:
+    """The sim has no post-collection failures (AGENT §10): staff confirm after their usual reply delay."""
+    state = store.state
+    button = outgoing.buttons[0].id  # D:{P|R}:{id}:READY
+    draws = state.draws.get(outgoing.request_id)
+    centre_id = outgoing.to.phone
+    delay = draws.staff_delay_min.get(centre_id, sum(config.SIM_STAFF_REPLY_MIN) / 2) if draws \
+        else sum(config.SIM_STAFF_REPLY_MIN) / 2
+    later(delay, centre_id, button_id=button, request_id=outgoing.request_id)
