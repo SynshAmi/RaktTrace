@@ -1,0 +1,35 @@
+{
+  "id": "s2_dengue_sdp",
+  "title": "S2 · Dengue platelets: O+ 1 SDP by 14:00 tomorrow",
+  "seed": 42,
+  "now": "2026-10-24T22:40:00+05:30",
+  "request": {"group": "O_POS", "product": "SDP", "units": 1, "hospital_id": "h_city",
+              "deadline_at": "2026-10-25T14:00:00+05:30"},
+  "notes": [
+    "Centre A lists 1 O+ SDP (15 h old) but has 0; no other centre lists O+ SDP.",
+    "Centre B (City General's own centre, apheresis) is the collection centre.",
+    "14 extra O+ apheresis-capable donors near Centre B, so at least 12 pass every filter at t = 0.",
+    "Script by invite order of simulated donors: 1st yes (deferred at screening), 2nd and 3rd yes (standby), 4th 'kal 11:55' (too late), 5th and 6th no, the rest silent."
+  ],
+  "clear_stock": [{"product": "SDP", "groups": ["O_POS"]}],
+  "stock": [
+    {"centre_id": "c_a", "product": "SDP", "group": "O_POS", "listed_units": 1, "age_min": 900, "true_units": 0}
+  ],
+  "staff_delay_min": {"c_a": 15},
+  "add_donors": [
+    {"count": 14, "group": "O_POS", "near_centre": "c_b", "within_km": 3, "apheresis_ok": true, "donation_verified": true}
+  ],
+  "donor_script": [
+    {"invite_order": 1, "says_yes": true, "reply_delay_min": 6, "phrase_id": "phrase_01", "will_show": true, "will_pass": false},
+    {"invite_order": 2, "says_yes": true, "reply_delay_min": 9, "phrase_id": "phrase_05"},
+    {"invite_order": 3, "says_yes": true, "reply_delay_min": 12, "phrase_id": "phrase_12"},
+    {"invite_order": 4, "says_yes": true, "is_later": true, "reply_delay_min": 14, "phrase_id": "phrase_16",
+     "available_from": "2026-10-25T11:55:00+05:30"},
+    {"invite_order": 5, "says_yes": false, "reply_delay_min": 18, "phrase_id": "phrase_23"},
+    {"invite_order": 6, "says_yes": false, "reply_delay_min": 20, "phrase_id": "phrase_26"},
+    {"invite_order": 7, "says_yes": false},
+    {"invite_order": 8, "says_yes": false},
+    {"invite_order": 9, "says_yes": false},
+    {"invite_order": 10, "says_yes": false}
+  ]
+}

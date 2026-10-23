@@ -1,0 +1,10 @@
+{
+  "id": "s3_no_way_in_time",
+  "title": "S3 · No way in time: O− 2 units red cells in 6 h",
+  "seed": 42,
+  "now": "2026-10-24T20:00:00+05:30",
+  "request": {"group": "O_NEG", "product": "PRBC", "units": 2, "hospital_id": "h_north",
+              "deadline_at": "2026-10-25T02:00:00+05:30"},
+  "notes": ["No centre lists O− red cells, so there is no O− stock within 40 km."],
+  "clear_stock": [{"product": "PRBC", "groups": ["O_NEG"]}]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "s1_surgery_tonight",
+  "title": "S1 · Surgery tonight: B+ 2 units red cells in 4 h",
+  "seed": 42,
+  "now": "2026-10-24T18:00:00+05:30",
+  "request": {"group": "B_POS", "product": "PRBC", "units": 2, "hospital_id": "h_city",
+              "deadline_at": "2026-10-24T22:00:00+05:30"},
+  "notes": [
+    "Only A, B and D hold compatible red cells; every other compatible listing is cleared.",
+    "D's listing is older than A's, so the stock step asks B (fresh) and A, not D.",
+    "A answers 'Some 1' (8 min) before B answers 'Reserve 2' (15 min); B is trimmed to 1. Both inside 20 min."
+  ],
+  "clear_stock": [{"product": "PRBC", "groups": ["B_POS", "B_NEG", "O_POS", "O_NEG"]}],
+  "stock": [
+    {"centre_id": "c_a", "product": "PRBC", "group": "B_POS", "listed_units": 3, "age_min": 1140, "true_units": 1},
+    {"centre_id": "c_b", "product": "PRBC", "group": "B_POS", "listed_units": 2, "age_min": 40, "true_units": 2},
+    {"centre_id": "c_d", "product": "PRBC", "group": "B_POS", "listed_units": 1, "age_min": 1560, "true_units": 1}
+  ],
+  "staff_delay_min": {"c_a": 8, "c_b": 15}
+}
