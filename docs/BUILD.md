@@ -34,9 +34,9 @@ Versions: latest stable on the day, pinned by `uv.lock` and `package-lock.json`.
 
 ## 3. Git
 
-- Local git only until the event.
-- **`main`** = verified code; one working branch **`phase`**; merge into `main` only after a phase's verification gate passes (`IMPLEMENTATION_PLAN.md`).
-- Create the GitHub repo and push on event day.
+- Remote: `origin` = https://github.com/SynshAmi/RaktTrace.git. Push normally; never force-push or rewrite history.
+- **`main`** = verified code; one working branch **`phase`**; merge into `main` only after a phase's verification gate passes (`IMPLEMENTATION_PLAN.md`), fast-forward `phase` to `main`, then push both.
+- **Freeze: 18:00 IST, 24 Oct 2026** (SPEC §8). All commits, pushes and submission uploads are done by then; nothing changes after it until judging is complete.
 - Commit messages: `phase 4: donor waves and promotion`.
 
 ## Documentation maintenance — mandatory
@@ -278,7 +278,7 @@ Message copy is rendered by `agent/messages.py`; channels only deliver.
 
 ### 6.2 Target effort (not a commitment)
 
-Target: about 8 hours of focused build. Work may start before the event, locally. Sizes: S ≈ ½ h, M ≈ 1 h, L ≈ 1½ h.
+Target: about 8 hours of focused build. Work may start before the event; everything must be pushed by the 18:00 IST, 24 Oct 2026 freeze (§3). Sizes: S ≈ ½ h, M ≈ 1 h, L ≈ 1½ h.
 
 | Order | Core path | Size | In parallel |
 |---|---|---|---|
