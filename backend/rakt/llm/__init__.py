@@ -74,6 +74,8 @@ def reading_from(data: dict, now: datetime) -> ReplyRead:
     if confidence < config.LLM_MIN_CONFIDENCE:
         return ReplyRead(intent=Intent.UNCLEAR, confidence=confidence, read_by="llm")
     available = as_time(data.get("available_from"), now) if intent == Intent.YES else None
+    if available is not None and available <= now + timedelta(minutes=config.READ_NOW_WINDOW_MIN):
+        available = None  # "aa raha hoon, 20 min" is a yes for now, not a later time (AGENT §7.2)
     return ReplyRead(intent=intent, available_from=available, confidence=confidence, read_by="llm")
 
 

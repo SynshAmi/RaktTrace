@@ -61,7 +61,8 @@ def test_same_account_twice_is_one_identity():
     assert first == again and len(live.registry.identities) == 1
     assert text.startswith("Welcome back")
     start_text, buttons = bot.on_start(JUDGE, "Judge A.", "", private=True)
-    assert start_text.startswith("Welcome back") and [b.id for b in buttons] == ["O:JOIN", "O:CREATE"]
+    assert start_text.startswith("Your donor profile is already set up and linked") and buttons == []
+    assert len(live.registry.identities) == 1 and live.registry.identities[JUDGE].donor_id == first
 
 
 def test_templates_are_reused_not_a_cap():
@@ -71,13 +72,14 @@ def test_templates_are_reused_not_a_cap():
     assert all(store.state.main.donors[d].telegram_demo for d in ids)
 
 
-def test_half_finished_qa_restarts_safely():
+def test_half_finished_qa_resumes_and_stale_buttons_restart_safely():
     reset("s2_dengue_sdp")
     bot.on_callback(OTHER, "B", "O:CREATE")
     bot.on_callback(OTHER, "B", "Q:0:O_POS")
     assert bot.on_text(OTHER, "hello")[0].startswith("Please tap")
-    text, _ = bot.on_start(OTHER, "B", "", private=True)  # /start mid-Q&A
-    assert OTHER not in bot._onboarding and not text.startswith("Welcome back")
+    text, buttons = bot.on_start(OTHER, "B", "", private=True)  # /start mid-Q&A resumes question 2
+    assert text.startswith("Let's carry on") and buttons[0].id.startswith("Q:1:")
+    assert bot._onboarding[OTHER]["group"] == "O_POS"  # progress kept
     reply_text, buttons = bot.on_callback(OTHER, "B", "Q:4:70")  # a stale button
     assert reply_text.startswith("Let's start again") and buttons[0].id.startswith("Q:0:")
     assert OTHER not in live.registry.identities or live.registry.identities[OTHER].profile is None
@@ -237,7 +239,8 @@ def test_switching_a_chat_to_staff_removes_it_from_the_donor_pool():
     assert state.main.centres["c_b"].contact.chat_id == STAFF and donor_id not in state.main.donors
 
 
-def test_staff_taps_come_from_the_linked_chat_and_sim_staff_stand_aside():
+def test_staff_taps_come_from_the_linked_chat_and_sim_staff_stand_aside(monkeypatch):
+    monkeypatch.setattr(bot, "send", lambda chat_id, text, buttons, on_fail: True)  # Telegram delivers
     state, rid = reset("s2_dengue_sdp")
     bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
     run_until(state, lambda: any(p.status == S.ACTIVE for p in state.main.pledges.values()))
@@ -249,12 +252,16 @@ def test_staff_taps_come_from_the_linked_chat_and_sim_staff_stand_aside():
     assert active.status == S.ARRIVED
 
 
-def test_one_staff_chat_per_centre_newest_wins():
+def test_one_staff_chat_per_centre_and_no_silent_takeover():
     reset("s2_dengue_sdp")
     bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
+    text, _ = bot.on_start(OTHER, "Backup", "staff_c_b", private=True)
+    assert "already has a linked staff account" in text
+    assert store.state.main.centres["c_b"].contact.chat_id == STAFF
+    assert live.registry.identities[STAFF].role == "staff"
+    bot.on_reset(STAFF)  # released explicitly: now the other account can link
     bot.on_start(OTHER, "Backup", "staff_c_b", private=True)
     assert store.state.main.centres["c_b"].contact.chat_id == OTHER
-    assert live.registry.identities[STAFF].role == "none"
 
 
 def test_rejoining_as_donor_unlinks_staff():
@@ -372,9 +379,15 @@ def test_reset_keeps_stop_until_an_explicit_rejoin():
     assert not live.registry.identities[JUDGE].opted_out and not state.main.donors[new_id].opted_out
 
 
-def test_reset_does_not_touch_staff_links():
+def test_staff_reset_releases_only_that_centre_link():
     state, rid = reset("s2_dengue_sdp")
     bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
+    donor_id, _ = join(JUDGE)
+    clock, decisions = state.clock.now, len(state.main.decisions)
     text, buttons = bot.on_reset(STAFF)
-    assert "only clears donor profiles" in text and buttons == []
-    assert state.main.centres["c_b"].contact.chat_id == STAFF
+    assert "no longer linked as Centre B staff" in text and buttons == []
+    centre = state.main.centres["c_b"]
+    assert centre.contact.channel == "sim" and centre.contact.phone == "c_b"
+    assert live.registry.identities[STAFF].role == "none"
+    assert state.clock.now == clock and len(state.main.decisions) == decisions  # the scenario isn't touched
+    assert live.registry.identities[JUDGE].role == "donor" and state.main.donors[donor_id].consent

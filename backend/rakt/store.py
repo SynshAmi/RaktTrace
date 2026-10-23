@@ -55,6 +55,9 @@ class AppState:
     scenario: Scenario | None = None
     scenario_request_id: str | None = None  # the one request the scenario's donor script applies to
     sim_latent: dict[str, DonorLatent] = field(default_factory=dict)  # pledge id → the sim donor's outcome
+    baselines: dict = field(default_factory=dict)  # request id → today's-workflow run (baseline/policy.py)
+    read_upto: dict[str, int] = field(default_factory=dict)  # sim phone id → messages already shown
+    auto: bool = False  # demo clock running at 1 sim minute per real second
     message_seq: int = 0
 
     @property

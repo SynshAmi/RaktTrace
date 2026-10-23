@@ -88,6 +88,7 @@ BASELINE_INTERVAL_MIN = 30  # Assumption
 # --- LLM ---
 LLM_TIMEOUT_S = 8  # Design
 LLM_MIN_CONFIDENCE = 0.6  # Design: below this, treat as unclear
+READ_NOW_WINDOW_MIN = 60  # Design: an LLM-read availability time within the next hour means "now" (AGENT §7.2: null for now)
 
 # --- Flags (AGENT §11) ---
 ESTIMATOR = "mixture"  # Design: mixture | plugin

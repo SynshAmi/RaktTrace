@@ -22,6 +22,7 @@ RaktTrace is an agent that keeps working an urgent blood request until a blood c
 | Medical and legal facts | `docs/DOMAIN_RULES.md` |
 | Stack, folders, data model, API, interfaces, coding rules, phases, cut order | `docs/BUILD.md` |
 | Step-by-step plan and verification gates | `docs/IMPLEMENTATION_PLAN.md` |
+| Frontend integration guide for the live API (phase 8) | `docs/PHASE8_HANDOFF.md` |
 | Features after the base works | `docs/FEATURES.md` |
 | Pitch, demo script, Q&A | `docs/PITCH.md` |
 

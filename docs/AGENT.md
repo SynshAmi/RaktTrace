@@ -70,6 +70,7 @@ event (new request, staff tap, donor reply, silence timer, clock step)
 | **LLM** | | |
 | `LLM_TIMEOUT_S` | 8 | Design |
 | `LLM_MIN_CONFIDENCE` | 0.6 | Design: below this, treat as unclear |
+| `READ_NOW_WINDOW_MIN` | 60 | Design: an LLM-read availability time within the next hour means "now" (§7.2) |
 | **Flags** (§11) | | |
 | `ESTIMATOR` | `"mixture"` | Design |
 | `SIZING` | `"cost"` | Design |
@@ -336,7 +337,7 @@ Output:
 {"intent":"YES","available_from":"2026-10-25T11:55:00+05:30","confidence":0.9}
 ```
 - `intent ∈ YES | NO | STOP | UNCLEAR`.
-- `available_from` is null for "now".
+- `available_from` is null for "now". A time the LLM returns within `READ_NOW_WINDOW_MIN` of now ("aa raha hoon, 20 minute me") is treated as now; the phrase cache stores times relative to the day, so a reading applies at any sim time.
 - Confidence below `LLM_MIN_CONFIDENCE` → UNCLEAR.
 
 **Fallback (rules):** word lists, case-insensitive.
@@ -380,7 +381,9 @@ The same world, the same request, a copy of the state. Behaviour:
 4. Mark **"fulfilled"** when stock found + yes-replies ≥ need. It counts any yes, including late ones, and stops searching.
 5. No deferral tracking, no backups, no stand-down, no warning.
 
-**At the deadline**, the true outcome is computed from the world: units actually ready in time.
+**At the deadline**, the true outcome is computed from the world: units actually ready by the deadline.
+
+Details (`baseline/policy.py`): the family's stock counts if issued (trip + `ISSUE_FROM_STOCK_MIN` + travel) by the deadline; the plea goes to the nearest compatible donors to the hospital (any group the patient can receive, O− included, no rest or timing checks); only the first yes-donors still needed go to donate, at the hospital's collection centre, and their unit counts if they show, pass screening (eligibility as screening), can give that product (SDP needs apheresis) and the unit is ready by the deadline. The lane reads the request's pre-drawn outcomes; for a scenario's own request it applies the scenario's donor script by its own invite order, as the rakttrace lane does.
 
 ## 9. Simulated world (`sim/`)
 
@@ -446,7 +449,7 @@ Every lane and policy reads the same draws, so differences come from decisions, 
 
 | Metric | Definition |
 |---|---|
-| `on_time_pct` | Requests where all units were truly ready before the deadline |
+| `on_time_pct` | Requests where all units were truly ready by the deadline (ready time ≤ deadline; the safety margin is a planning buffer, not part of the truth) |
 | `donors_messaged` | Average donors messaged per request |
 | `zero_donor_pct` | Requests solved without messaging any donor |
 | `warned_early_pct` | Failed requests where a human was alerted ≥ 1 h before the deadline (+ median lead time) |
@@ -460,7 +463,7 @@ World and agent share the 30-min reply-delay assumption; the stress regime doesn
 
 Results are also split by product. The RaktTrace policy runs with the LLM reader (cached phrase readings) or with rules only. The difference is the LLM's contribution.
 
-Results are cached to `backend/bench/results_<regime>_<seed>.json`. On stage: the cached run, plus a live re-run with N = 200.
+Results are cached to `backend/bench/results_<regime>_<seed>.json`. On stage: the cached run, plus a live re-run with N = 200. Requests: 50/50 PRBC/SDP by index, group by the seed mix, 1–3 units, a random hospital, created at a random time on 24 Oct; a request counts as "done" if it was ever `SECURED` or `FULFILLED`; "warned early" = the first L2 alert ≥ 1 h before the deadline.
 
 Ideation prototype numbers (JS, different world calibration) are archived and never quoted.
 

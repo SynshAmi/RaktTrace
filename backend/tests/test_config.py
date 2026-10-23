@@ -45,6 +45,7 @@ EXPECTED = {
     "BASELINE_INTERVAL_MIN": 30,
     "LLM_TIMEOUT_S": 8,
     "LLM_MIN_CONFIDENCE": 0.6,
+    "READ_NOW_WINDOW_MIN": 60,
     "ESTIMATOR": "mixture",
     "SIZING": "cost",
     "WAIT_RULE": "slack",

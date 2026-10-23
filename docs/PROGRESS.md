@@ -8,9 +8,9 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 
 | | |
 |---|---|
-| Current phase | 7 (baseline, benchmark, API) |
-| Current step | 7.1 |
-| Branch state | `main` = phase 6 · `phase` = main |
+| Current phase | 8 (frontend core) |
+| Current step | 8.1 |
+| Branch state | `main` = phase 7 · `phase` = main |
 | Publishing | Push normally to `origin`; freeze at 18:00 IST, 24 Oct 2026 (SPEC §8) |
 | Build start / end | `__:__` / `__:__` |
 | LLM chain (after phase 0 tests) | `groq:qwen/qwen3.8-27b,gemini:gemini-3.5-flash-lite` |
@@ -26,7 +26,7 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 | 4 | Donors | Suryansh | DONE | Gate 4.V passed: 192 tests green (62 new); lookahead stretch not built |
 | 5 | Closing + escalation | Suryansh | DONE | Gate 5.V passed: 214 tests green (20 new) |
 | 6 | Telegram + LLM | Aditya (parallel); built by Suryansh (Claude) | DONE | 264 passed, 0 skipped; cached LLM 40/40 vs rules 27/40. Manual on real Telegram: onboarding, Centre B staff link, `/reset` passed. Still pending for integration/rehearsal (needs `/demo/step`): a live button tap and a Hinglish reply moving a request, LLM on and off |
-| 7 | Baseline, benchmark, API | Suryansh | TODO | |
+| 7 | Baseline, benchmark, API | Suryansh | DONE | Gate 7.V passed: 295 tests green; benchmark seed 2026, N = 500 in 23.7 s; manual Telegram checks pending (below) |
 | — | Frontend scaffold on mocks (alongside 1–7) | Antigravity, then Aditya | TODO | |
 | 8 | Frontend core | Aditya | TODO | |
 | 9 | Frontend finish | both | TODO | |
@@ -55,7 +55,9 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 
 | Run | policy | regime | n | seed | on_time | donors_messaged | zero_donor | warned_early | false_done | CI (on_time diff) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | |
+| 1 | today | nominal | 500 | 2026 | 50.0% | 8.84 | 48.8% | 0.0% | 47.4% | — |
+| 1 | rakttrace (cached LLM) | nominal | 500 | 2026 | 59.8% | 5.11 | 35.2% | 100.0% (median 16.56 h) | 0.0% | +9.8 pts [5.9, 13.7] |
+| 2 | rakttrace (rules only) | nominal | 500 | 2026 | 56.4% | 5.31 | 35.2% | 100% (median 16.53 h) | 0.0% | +6.4 pts [2.7, 10.1] |
 
 ## Log
 
@@ -77,3 +79,4 @@ Statuses: `TODO` · `DOING` · `DONE` · `CUT (reason)` · `BLOCKED (by what)`
 - 23 Oct · phase 6 · Suryansh (Claude) · Built, gate open. `llm/client.py` (chain from LLM_CHAIN, timeout, any failure → next entry, health), `llm/__init__.py` (cache → chain → rules for replies; LLM → rules plea parser; LLM → template brief; never raise), `llm/rules.py` plea parser, `sim/phrase_cache.py` (builder, not run: it calls the LLM), `agent/live.py` (registry outside AppState, 6 S2 templates reused, one identity per account, one role per chat, STOP kept across resets until re-join, `attach` after reset, rakttrace lane only), `channels/telegram_bot.py` (onboarding Join / Create my profile, staff/family/coord deep links in private chat, /stop, taps and text → `handle_inbound` in a worker thread under `store.lock`), router sends live contacts to Telegram and falls back to the sim phone, `loop.reset_scenario`. Tests: `uv run pytest -q` → 255 passed, 1 skipped. Rules reader on the phrase bank: 27 right, 0 wrong, 13 unclear of 40. Open for the gate: build `phrase_cache.json` (one LLM run) and the manual checks (a /start join, a button tap and a Hinglish reply from a real phone moving S2, LLM on and off; staff link for Centre B).
 - 23 Oct · phase 6 · Suryansh (Claude) · Manual checks by the team: donor onboarding and Aditya's Centre B staff link work on real Telegram. Added `/reset` (donor profile only; withdraws from open requests through the normal lifecycle; STOP kept; 8 tests). Phrase cache built in one bounded run: 40 calls attempted, 40 succeeded (all Groq qwen3.8-27b), 0 failed, 0 rate-limited; quota at start 1000 requests/day (999 left), 8000 tokens/min. `phrase_cache.json` has 40 entries, all intents match the labels. Offline: cached LLM 40 right / 0 wrong / 0 unclear vs rules 27 / 0 / 13. `uv run pytest -q` → 264 passed. Gate still open on the manual 'tap + Hinglish reply moves a request' check.
 - 23 Oct · phase 6 · team + Suryansh (Claude) · Manual gate: on a real Telegram phone, a donor with an existing synthetic profile sent `/reset` and got the expected confirmation with the two onboarding choices (Join the live demo / Create my profile). Backend restarted on `51e9c28` for this check (in-memory registry and S2 clock reset). `uv run pytest -q` → 264 passed, 0 skipped; `sim/phrase_cache.json` tracked (40 entries). Phase 6 closed by team decision with these caveats, not verified by the `/reset` check: (1) a live button tap and a Hinglish free-text reply moving a request, with the LLM on and off, wait for phase 7's `/demo/step` and the rehearsal; (2) the registry is in memory, so a server restart drops live links; (3) phase 7 must hold `store.lock` when it changes state. Agreed for phase 7 (not built): `/start` from an existing donor confirms the profile instead of showing the onboarding choices (`/reset` stays the way to start over); the sim keeps working without Telegram-linked staff while linked staff get live cards.
+- 23 Oct · phase 7 · Suryansh (Claude) · Gate 7.V passed (`uv run pytest -q`: 295 passed, 0 skipped). `baseline/policy.py` (today's workflow on the today lane, same outcomes, truth at the deadline: S1 says fulfilled with 1 of 2 ready, S2 with 0 of 1), `sim/benchmark.py` (common random numbers, essential metrics, paired 95% CIs; seed 2026, N = 500 in 23.7 s → `backend/bench/results_nominal_2026.json`), every BUILD §5.3 endpoint plus `GET /benchmark/cached`, the auto clock, `store.lock` on every endpoint (LLM reads outside it), new requests with their own outcomes (7.4), hybrid staff routing (handover on link and `/reset`, simulated staff take failed Telegram cards, no double processing), `/start` refinements, staff `/reset`, stale-card guard. Fixed on the way: benchmark truth used deadline − margin (now: ready by the deadline, AGENT §10); the LLM had returned 'now' replies as clock times (22:40) and the cache stored them as times, so they were misapplied at other hours (now normalised locally, no new API calls; `READ_NOW_WINDOW_MIN`). Results are simulated, not real-world evidence. Manual checks still pending (need phones + the demo clock): S2 stepped with `/demo/step`; a live donor button tap; a Hinglish reply with the LLM on and off; linked vs unlinked centre routing; donor and staff `/reset` scope; repeated `/start`.

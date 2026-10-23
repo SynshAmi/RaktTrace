@@ -3,85 +3,85 @@
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Yes, I can come right away": {
   "intent": "YES",
   "confidence": 0.98,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "nikal raha hoon abhi 15 min me pahuchunga": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:55"
+  "time": null
  },
  "I'm available now, on my way to centre": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Haanji main abhi aa raha hoon": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Yes, I can donate right now": {
   "intent": "YES",
   "confidence": 1.0,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Main ready hoon abhi aa sakta hoon": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Yes coming now": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Aa raha hoon bhai, 20 minute me pahunch jaunga": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "23:00"
+  "time": null
  },
  "I am free right now, heading to the blood centre": {
   "intent": "YES",
   "confidence": 0.98,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Yes I can give blood immediately": {
   "intent": "YES",
   "confidence": 0.98,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Bilkul, abhi nikal raha hoon ghar se": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Count me in, leaving for the centre right now": {
   "intent": "YES",
   "confidence": 0.98,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "Haan main blood de sakta hoon abhi": {
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "22:40"
+  "time": null
  },
  "kal subah 8 baje aa jaunga": {
   "intent": "YES",
@@ -105,7 +105,7 @@
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "18:00"
+  "time": null
  },
  "Can donate tomorrow after 10 AM": {
   "intent": "YES",
@@ -123,7 +123,7 @@
   "intent": "YES",
   "confidence": 0.95,
   "day_offset": 0,
-  "time": "21:00"
+  "time": null
  },
  "Kal aa paunga subah 10 baje": {
   "intent": "YES",
