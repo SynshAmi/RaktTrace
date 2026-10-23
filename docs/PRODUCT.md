@@ -167,6 +167,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 | ID | Text | Buttons |
 |---|---|---|
 | `staff_hold` | RaktTrace · {code}: can you reserve {units} unit(s) of {group} {product_label} for a patient at {hospital}, needed by {deadline}? | Reserve {units} · Some · None |
+| `staff_hold_count` | {code}: how many units can you reserve? | 1 · 2 · … (one button per count below the ask; ids `N{k}`) |
 | `staff_incoming` | 🩸 Incoming donor · {code}<br>{donor_name} · {group} · Booking code {booking_code}<br>For: {product_label}, {hospital}, needed by {deadline}<br>Expected around {eta} | Arrived · Didn't show |
 | `staff_visit` | {donor_name} · code {booking_code} · screening | Collected · Deferred |
 | `staff_ready` | Unit from code {booking_code} (or reserved stock) for {code}: ready for the patient? | Ready for patient · Failed testing |

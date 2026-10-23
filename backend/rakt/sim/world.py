@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from rakt import config
+from rakt.agent.probability import stock_p
 from rakt.domain.geo import EARTH_RADIUS_KM, haversine_km
 from rakt.models import BloodGroup, Centre, Channel, Contact, Donor, Hospital, Product, Stock
 
@@ -183,10 +184,6 @@ def phrase_pools(phrases: list[dict]) -> dict[str, list[dict]]:
         "yes_later": morning,
         "no": [p for p in phrases if p["label"] == "NO"],
     }
-
-
-def stock_p(age_min: float) -> float:
-    return next(p for max_h, p in config.STOCK_P if age_min <= max_h * 60)
 
 
 def tonight_factor(rng: random.Random) -> float:

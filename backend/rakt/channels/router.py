@@ -13,5 +13,5 @@ def deliver(msg: Outgoing) -> Message:
         id=f"m_{state.message_seq}", at=state.clock.now, direction="out", channel=Channel.SIM,
         to_name=msg.to.name, request_id=msg.request_id, kind=msg.kind, body=msg.body, buttons=msg.buttons,
     )
-    simulated.append(simulated.phone_id(msg.to), message)
+    simulated.deliver(simulated.phone_id(msg.to), message, msg)
     return message
