@@ -141,3 +141,4 @@ Resolved: local coding before the event is allowed; nothing is pushed to GitHub 
 - 23 Oct 2026: implementation plan split into IMPLEMENTATION_PLAN.md; milestone-based cut triggers; no clock times.
 - 23 Oct 2026: Docs v1.0 locked: S2 first-wave wording, phrases.json path, final consistency pass.
 - 23 Oct 2026 (phase 4, agreed): AGENT §7.2 rule reader: "kal/tomorrow + a time" counts as a YES signal, so a later-yes like "kal 11:55" reads as YES with that time and the planner marks it TOO_LATE when it can't make the deadline.
+- 23 Oct 2026 (pre-phase-5 audit, agreed): AGENT §2 now also lists STANDBY_PER_UNIT, PROMOTE_TIMEOUT_MIN, DEFAULT_DEFERRAL_DAYS, REPLY_LAG_MIN and MIN_GO_WINDOW_MIN (values unchanged, already in §4/§5 and DOMAIN_RULES E10).

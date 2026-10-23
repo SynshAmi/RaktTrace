@@ -66,7 +66,7 @@ rakttrace/
 │   ├── pyproject.toml
 │   ├── rakt/
 │   │   ├── main.py            # app startup: load scenario, start bot, routes
-│   │   ├── config.py          # settings from .env + every number from AGENT.md §2
+│   │   ├── config.py          # settings from .env + every number from AGENT.md §2 (+ DOMAIN_RULES §2, AGENT §9)
 │   │   ├── models.py          # data model (§5)
 │   │   ├── store.py           # in-memory state + lane copies
 │   │   ├── clock.py           # sim clock + timer queue
