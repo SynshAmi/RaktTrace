@@ -48,7 +48,10 @@ def answer_stock(outgoing: Outgoing) -> None:
         return
     listing = next((x for x in s.stock if (x.centre_id, x.product, x.group)
                     == (res.centre_id, s.requests[res.request_id].product, res.group)), None)
-    true_units = listing.true_units if listing else 0
+    used = sum(r.units_reserved for r in s.reservations.values()  # units this request already took from the listing
+               if r.id != res.id and r.request_id == res.request_id
+               and (r.centre_id, r.group) == (res.centre_id, res.group))
+    true_units = max(0, (listing.true_units if listing else 0) - used)
     choice = "ALL" if true_units >= res.units_asked else f"N{true_units}" if true_units > 0 else "NONE"
     draws = state.draws.get(res.request_id)
     delay = draws.staff_delay_min[res.centre_id] if draws else sum(config.SIM_STAFF_REPLY_MIN) / 2
@@ -56,16 +59,18 @@ def answer_stock(outgoing: Outgoing) -> None:
 
 
 def latent_for(pledge_id: str) -> DonorLatent | None:
-    """The scenario script by invite order of simulated donors, else the request's pre-drawn outcome."""
+    """The scenario script (scenario request only, by invite order of simulated donors), else the request's
+    own pre-drawn outcome. Live-linked donors never get a simulated outcome: they answer for themselves."""
     state = store.state
     s = state.main
     pledge = s.pledges[pledge_id]
-    sim_pledges = [p for p in s.pledges.values()
-                   if p.request_id == pledge.request_id and not s.donors[p.donor_id].telegram_demo]
-    order = [p.id for p in sim_pledges].index(pledge_id) + 1
-    scenario = state.scenario
-    if scenario is not None:
-        for scripted in scenario.donor_script:
+    if s.donors[pledge.donor_id].telegram_demo:
+        return None
+    if state.scenario is not None and pledge.request_id == state.scenario_request_id:
+        sim_pledges = [p.id for p in s.pledges.values()
+                       if p.request_id == pledge.request_id and not s.donors[p.donor_id].telegram_demo]
+        order = sim_pledges.index(pledge_id) + 1
+        for scripted in state.scenario.donor_script:
             if scripted.invite_order == order:
                 return scripted.latent()
     draws = state.draws.get(pledge.request_id)

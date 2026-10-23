@@ -24,8 +24,8 @@ Numbers on stage come from the **benchmark** (cached run + live re-run). Ideatio
 | # | Do | They see | Say |
 |---|---|---|---|
 | 1 | Reset **S1**, Step through | Left lane: today's workflow trusts Centre A's 19-hour-old listing. Right lane: RaktTrace asks B and A in parallel (enough for 90%); A really has 1; reserves A 1 + B 1; **0 donors**; SECURED | "Surgery tonight. Donated blood can't be tested in 4 hours, so RaktTrace doesn't bother a single donor. Today's workflow messages 30 and says 'fulfilled' with 1 of 2 units." |
-| 2 | Reset **S2**; ask judges to scan the QR | Judges' phones become donors | "You're now O+ platelet donors near the hospital." |
-| 3 | Step: Centre A answers None | P drops; a first wave (at most 10) goes out, including the judges' phones | "It waited for the stock reply first. Now it weighs the chance of failure against disturbing donors, and messages only that many." |
+| 2 | Reset **S2**; judges scan the QR and tap **Join the live demo** | Judges get synthetic O+ donor profiles near the hospital | "You're now synthetic platelet donors near the hospital. The agent decides who to message." |
+| 3 | Step: Centre A answers None; stay in Step mode and wait for judges' replies before stepping again | P drops; a first wave (at most 10) goes out, including the judges' phones if the planner ranks them in | "It waited for the stock reply first. Now it weighs the chance of failure against disturbing donors, and messages only that many." |
 | 4 | A judge replies in their own words | LLM reads it; ACTIVE; booking code and directions to the judge; incoming card on Aditya's phone | "Free text works. The staff already know who's coming." |
 | 5 | Another reply: "kal 11:55 ke baad free hoon" | Marked too late, not counted | "That's a yes, but platelets need about 8 hours to be usable. Not counted." |
 | 6 | Paste the same plea again | "Merged into RT-xxxx" | "Duplicate pleas don't start a second search." |

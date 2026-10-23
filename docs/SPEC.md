@@ -52,7 +52,7 @@ One line: *family raises it, coordinator starts it, the agent runs it, donors re
 | L-07 | One live number, **P**: a posterior mixture over tonight's reply rate (AGENT §3). Wave size is chosen by expected cost (failure risk vs donors disturbed, τ), stopping at 90% (AGENT §5). Stock waiting uses the slack rule. P_firm drives COVERED; P_best drives escalation. |
 | L-08 | **Escalation:**<br>• L1: widen the search radius.<br>• L2: alert the coordinator with the LLM brief and a call list.<br>• FAILED at the deadline. |
 | L-09 | **Today's-workflow lane:** the same world, run with today's behaviour, shown side by side. A **live benchmark** reports both. |
-| L-10 | **Channel:** Telegram bot for real people in the demo; a simulated channel for everyone else. WhatsApp is the production path (pitch only). |
+| L-10 | **Channel:** Telegram bot for real people in the demo (judges join via "Join the live demo" or "Create my profile"; staff via a private-chat deep link; PRODUCT §2.2); a simulated channel for everyone else. WhatsApp is the production path (pitch only). |
 | L-11 | Synthetic data only. Same world model as the ideation simulation, ported to Python, with the tonight factor rescaled to mean 1.0 (AGENT §9). Numbers live in config with a one-line basis. |
 | L-12 | Two people, one Telegram bot, one laptop. No hosting, no database. |
 
@@ -144,3 +144,4 @@ Resolved (publishing, clarified by the organiser directly to the team; recorded 
 - 23 Oct 2026 (pre-phase-5 audit, agreed): AGENT §2 now also lists STANDBY_PER_UNIT, PROMOTE_TIMEOUT_MIN, DEFAULT_DEFERRAL_DAYS, REPLY_LAG_MIN and MIN_GO_WINDOW_MIN (values unchanged, already in §4/§5 and DOMAIN_RULES E10).
 - 23 Oct 2026: publishing policy updated per the organiser's clarification (§8): normal pushes allowed; freeze at 18:00 IST, 24 Oct 2026.
 - 23 Oct 2026 (phase 5, agreed): AGENT §6 L1 widens only when nothing is left to try at the current radius (no stock left to ask, and donors can't help or the pool is exhausted). As first written ("pool_exhausted or no stock left"), S2 widened to 40 km and raised L2 while its donor wave was still working.
+- 23 Oct 2026 (pre-phase-6 audit, agreed): stock centres whose hold was released, or whose reserved unit failed testing, can be asked again while units are needed (AGENT §5 Step 2); a centre that said None or didn't answer is not; L1 waits while a stock answer is awaited (AGENT §6). Failed stock units are NONE, and SECURED-but-unconfirmed requests fail honestly at the deadline (AGENT §5 Step 6, §6). Live Telegram demo design locked (PRODUCT §2.2): two onboarding choices, S2 templates, one identity per account, reset/STOP lifecycle, Step mode for the live window.

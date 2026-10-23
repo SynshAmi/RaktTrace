@@ -33,7 +33,7 @@ class Fail:
 class View:
     """What the planner already knows this pass."""
     p: float
-    stock_left: bool  # un-asked compatible stock in the current radius
+    stock_left: bool  # a stock answer is awaited, or a centre in the current radius can still be asked
     stock_at: Callable[[float], bool]  # would this radius add a candidate centre?
     centre: Centre | None
     donors_can_help: bool

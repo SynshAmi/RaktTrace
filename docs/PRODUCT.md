@@ -47,16 +47,32 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - LLM on/off.
 5. **Benchmark:** run N requests and seed → a results table and a simple bar chart, today vs RaktTrace.
 
-### 2.2 Telegram roles (deep links)
+### 2.2 Telegram roles and onboarding (built in phase 6)
 
 | Link | Role |
 |---|---|
-| `?start=donor` | Linked to a free demo donor slot (judges scan the QR on the slide) |
-| `?start=staff_<centre_id>` | That centre's staff chat (Aditya, as Centre B) |
+| `/start` (judges scan the QR on the slide) | Onboarding with two choices: **Join the live demo** or **Create my profile** |
+| `?start=staff_<centre_id>` (private chat) | That centre's staff (Aditya, as Centre B) |
 | `?start=family` | Family contact for the next demo request |
 | `?start=coord` | Coordinator alerts (optional) |
 
-Linked Telegram donors are real people in the demo. They rank first among equal candidates so they get invited.
+**Join the live demo:** the account gets its own donor record cloned from a small pool of synthetic templates (about 5–10) designed for S2: O+, apheresis-capable, eligible, near Centre B, with a small location jitter. The pool size is not a cap: templates are reused, one donor record per account.
+
+**Create my profile:** a short fixed-button Q&A: blood group, approximate area (from the city's area list), sex, age band, weight band, last donation (never / over 4 months ago / recently), apheresis yes/no. It creates the same kind of donor record. The bot only collects answers; it never decides matching or invitations.
+
+**Live donors:**
+- Both routes end in the same core registration. Live donors join the real donor pool; the planner alone decides compatibility, timing, ranking and invitations. They rank 2nd among candidates that pass every filter (AGENT §5.1); nobody is guaranteed an invitation, and custom profiles may never be contacted.
+- A live donor never gets a simulated reply; simulated outcomes are switched off by the donor's live flag, not by the channel of a message.
+- S2 is the live donor scenario. S1 and S3 keep their rules: donors can't help there, so live donors are not invited. The bot never asks which scenario to join.
+- Joining while S2 runs adds the donor to the running pool without changing earlier decisions; they can be invited from the next wave the planner sends. The bot says: "You're in. You'll get a message only if a request needs someone like you." With no scenario running, they are registered but not told they joined a request.
+- During the live window S2 runs in Step mode, so the presenter can wait for judges' replies before advancing sim time.
+
+**Identity and reset:**
+- One Telegram account = one donor identity for the life of the server process. A repeated `/start` resumes it; a half-finished Q&A restarts from its first question.
+- A chat has one role at a time. Linking a private chat as centre staff detaches it from the donor pool. Group chats are not supported for staff.
+- A scenario reset keeps identities and profile answers, rebuilds the world with the currently linked live donors, and clears their scenario history (invites, pledges, deferrals, donations). STOP / opt-out is kept across resets.
+- The registry is in memory: a server restart clears it (including STOP), and participants re-join.
+- All profiles are synthetic; nothing collects a home address or real medical history, and the demo is not a verified donor registry. Screening stays with the blood centre.
 
 ## 3. Flows
 
@@ -73,6 +89,7 @@ Linked Telegram donors are real people in the demo. They rank first among equal 
    - it asks in parallel until stock alone looks ≥ 90% likely.
 2. Staff answer `Reserve N`, `Some` (then pick a number) or `None`.
 3. When reservations cover the need, the agent keeps what it needs and releases the rest ("not needed, thank you").
+4. A centre isn't asked again while its hold is active, after it said None, or after it didn't answer. If a reserved unit fails testing, or more units are needed after a hold was released, a centre whose listing still has unused units can be asked again (AGENT §5 Step 2).
 
 ### 3.3 Donors for the gap
 1. Only if stock can't cover the gap, **and** a donor's unit could still be ready before the deadline.
@@ -127,7 +144,7 @@ The coordinator cancels: holds are released and donors stood down.
 COVERED can drop back to OPEN, for example after a deferral. That's honest, and it's a good demo moment.
 
 ### Stock reservation
-`PENDING → RESERVED → READY`, or `NONE` (declined), `EXPIRED` (no answer), `RELEASED`.
+`PENDING → RESERVED → READY`, or `NONE` (declined, or a reserved unit that failed testing: no longer usable supply), `EXPIRED` (no answer), `RELEASED`.
 
 ### Donor pledge
 ```
