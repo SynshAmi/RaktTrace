@@ -21,8 +21,8 @@ export default function Ladder({ v }: { v: RequestView }) {
   const current = all.findIndex((s) => s.state !== "done" && s.state !== "skip");
   return (
     <div>
-      <h3 className="text-sm font-bold uppercase tracking-wider text-muted">How this request is moving · counts out of {v.units} required</h3>
-      <ol className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3 @4xl:grid-cols-6">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted">Progress · counts out of {v.units} required</h3>
+      <ol className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
         {all.map((s, i) => (
           <li key={s.label}>
             <div className="flex items-center gap-2">
@@ -30,14 +30,13 @@ export default function Ladder({ v }: { v: RequestView }) {
               <span className="sr-only">{STATE_WORD[s.state]}</span>
               {i === current && <span className="rounded bg-text px-1.5 text-xs font-bold text-bg">now</span>}
             </div>
-            <div className={`mt-1.5 font-semibold ${s.state === "todo" || s.state === "skip" ? "text-faint" : ""}`}>
+            <div className={`mt-1 font-semibold ${s.state === "todo" || s.state === "skip" ? "text-faint" : ""}`}>
               {i + 1}. {s.label}
             </div>
             <div className={`${s.state === "blocked" ? "font-semibold text-danger" : "text-muted"}`}>{s.value}</div>
           </li>
         ))}
       </ol>
-      <p className="mt-3 text-sm text-faint">Reserved or collected isn't ready. Only blood-centre staff confirming a unit makes it count.</p>
     </div>
   );
 }

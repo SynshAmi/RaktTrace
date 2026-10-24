@@ -37,9 +37,11 @@ export function steps(v: RequestView): Step[] {
     {
       label: "Gap after stock",
       value: gap === 0 ? "none: stock covers it"
+        : collected_or_reserved >= n ? `${plural(gap, "unit")}, covered by donors`
         : asking > 0 ? `${plural(gap, "unit")} until stock answers`
         : !v.flags.donors_can_help ? `${plural(gap, "unit")}; donors can't be tested in time` : `${plural(gap, "unit")} for donors`,
-      state: gap === 0 ? "done" : asking > 0 ? "todo" : v.flags.donors_can_help ? "partial" : "blocked",
+      state: gap === 0 || collected_or_reserved >= n ? "done"
+        : asking > 0 ? "todo" : v.flags.donors_can_help ? "partial" : "blocked",
     },
     {
       label: "Donor replies",
@@ -87,4 +89,22 @@ export function units(v: RequestView): Unit[] {
   const rows = found.slice(0, v.units);
   while (rows.length < v.units) rows.push({ state: "missing", label: "Not found yet", source: null });
   return rows;
+}
+
+export type Band = "good" | "watch" | "risk";
+
+/** Display band for P, judged on the whole percent shown: green ≥ 90, amber 70–89, red below 70. Display only:
+ *  the planner never reads it. */
+export function band(p: number): Band {
+  const shown = Math.round(p * 100);
+  return shown >= 90 ? "good" : shown >= 70 ? "watch" : "risk";
+}
+
+export type Trend = "up" | "down" | "steady";
+
+/** Direction of the last move in the shown percent; a rising 45% is still in the red band. */
+export function trend(previous: number | null, now: number): Trend {
+  if (previous === null) return "steady";
+  const a = Math.round(previous * 100), b = Math.round(now * 100);
+  return b > a ? "up" : b < a ? "down" : "steady";
 }

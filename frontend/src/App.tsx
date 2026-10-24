@@ -33,6 +33,8 @@ export default function App() {
   const [busy, setBusy] = useState<string | null>(null);
   const [controlError, setControlError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [run, setRun] = useState(0);  // bumps on every scenario load: notifications and the trend start afresh
+  const [activity, setActivity] = useState("Update");  // what last moved the clock, for notification summaries
   const [picked, setPicked] = useState<string | null>(null);
   const inFlight = useRef(false);
 
@@ -62,6 +64,7 @@ export default function App() {
     setBusy(label);
     setControlError(null);
     setNotice(null);
+    setActivity(label === "+60 min" ? "+1 h" : label === "Play" ? "Auto" : label);
     try {
       await run();
     } catch (e) {
@@ -78,6 +81,7 @@ export default function App() {
     control(`Loading ${scenarioId}`, async () => {
       const r = await api.reset(scenarioId);
       setPicked(r.request_id);
+      setRun((n) => n + 1);
     });
 
   const offline = clock.error !== null;
@@ -115,7 +119,8 @@ export default function App() {
 
       <div className="flex-1">
         {requestId ? (
-          <RequestView id={requestId} requests={list} onPick={setPicked} version={version} paused={busy !== null} />
+          <RequestView id={requestId} requests={list} onPick={setPicked} version={version} paused={busy !== null}
+            run={run} activity={clock.data?.auto ? "Auto" : activity} />
         ) : (
           <p className="px-4 py-10 text-muted sm:px-6">
             {requests.data ? "No request in this world yet. Load a scenario above." : "Connecting to the backend…"}

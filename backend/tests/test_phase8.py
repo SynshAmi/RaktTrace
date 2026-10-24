@@ -319,3 +319,60 @@ def test_a_telegram_name_that_matches_a_simulated_donor_is_marked():
     loop.reset_scenario("s2_dengue_sdp")
     donor = store.state.main.donors[live.registry.identities[JUDGE].donor_id]
     assert donor.display_name == f"{taken} · Telegram"
+
+
+# --- Time jumps and Auto process every event, in order, once ---
+
+def decision_log(api, rid):
+    return [(d["at"], d["trigger"], d["summary"]) for d in api.get(f"/api/requests/{rid}/decisions").json()]
+
+
+def run_by_steps(api, scenario_id):
+    rid = api.post("/api/demo/reset", json={"scenario": scenario_id}).json()["request_id"]
+    while api.post("/api/demo/step").json()["event"] is not None:
+        pass
+    return decision_log(api, rid)
+
+
+def test_jumps_and_auto_record_exactly_the_events_stepping_records(api):
+    from rakt import store
+    from rakt.api import demo
+
+    for scenario_id in SCENARIOS:
+        stepped = run_by_steps(api, scenario_id)
+        for minutes in (15, 60):
+            rid = api.post("/api/demo/reset", json={"scenario": scenario_id}).json()["request_id"]
+            for _ in range(int(24 * 60 / minutes)):
+                api.post("/api/demo/advance", json={"minutes": minutes})
+            assert decision_log(api, rid) == stepped, f"{scenario_id} +{minutes} min"
+        rid = api.post("/api/demo/reset", json={"scenario": scenario_id}).json()["request_id"]
+        api.post("/api/demo/auto", json={"on": True})
+        for _ in range(24 * 60):
+            demo.tick()  # one auto tick = one sim minute
+        api.post("/api/demo/auto", json={"on": False})
+        assert decision_log(api, rid) == stepped, f"{scenario_id} auto"
+        assert store.state.auto is False
+
+
+def test_pause_step_and_resume_never_replay_an_event(api):
+    from rakt.api import demo
+
+    stepped = run_by_steps(api, "s2_dengue_sdp")
+    rid = api.post("/api/demo/reset", json={"scenario": "s2_dengue_sdp"}).json()["request_id"]
+    api.post("/api/demo/auto", json={"on": True})
+    for _ in range(30):
+        demo.tick()
+    api.post("/api/demo/auto", json={"on": False})
+    paused_at = api.get("/api/demo/clock").json()["now"]
+    for _ in range(5):
+        demo.tick()  # paused: the auto clock does nothing
+    assert api.get("/api/demo/clock").json()["now"] == paused_at
+    api.post("/api/demo/step")
+    api.post("/api/demo/advance", json={"minutes": 15})
+    api.post("/api/demo/auto", json={"on": True})
+    for _ in range(24 * 60):
+        demo.tick()
+    log = decision_log(api, rid)
+    ids = [d["id"] for d in api.get(f"/api/requests/{rid}/decisions").json()]
+    assert len(ids) == len(set(ids)) and log == stepped
+    assert [at for at, _, _ in log] == sorted(at for at, _, _ in log)

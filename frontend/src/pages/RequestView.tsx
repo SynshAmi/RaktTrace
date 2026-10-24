@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, type RequestSummary, type RequestView as View } from "../api";
 import Baseline from "../components/Baseline";
-import Confirmed from "../components/Confirmed";
-import Gauge from "../components/Gauge";
+import { Figures, UnitRows } from "../components/Confirmed";
+import Gauge, { Chance } from "../components/Gauge";
 import Ladder from "../components/Ladder";
+import Notifications from "../components/Notifications";
 import Supply from "../components/Supply";
 import { baselineStatus, groupLabel, hhmm, pct, productLabel, requestStatus, timeLeft, toneText, when } from "../format";
 import { usePoll } from "../usePoll";
+import { trend as trendOf } from "../workflow";
 
 /** A plain sentence for where the request stands, read only from the API's status, ladder and flags. */
 function detail(v: View): string {
@@ -40,13 +42,18 @@ function readBaselineOpen() {
   }
 }
 
-type Props = { id: string; requests: RequestSummary[]; onPick: (id: string) => void; version: number; paused: boolean };
+type Props = {
+  id: string; requests: RequestSummary[]; onPick: (id: string) => void; version: number; paused: boolean;
+  run: number; activity: string;
+};
 
-export default function RequestView({ id, requests, onPick, version, paused }: Props) {
+export default function RequestView({ id, requests, onPick, version, paused, run, activity }: Props) {
   const view = usePoll(() => api.request(id), id, version, undefined, paused);
   const decisions = usePoll(() => api.decisions(id), id, version, undefined, paused);
   const baseline = usePoll(() => api.baseline(id), id, version, undefined, paused);
   const [compare, setCompare] = useState(readBaselineOpen);
+  // The last two distinct shown values of P in this run, for the trend arrow.
+  const moves = useRef<{ key: string; last: number | null; previous: number | null }>({ key: "", last: null, previous: null });
 
   const toggleCompare = (open: boolean) => {
     setCompare(open);
@@ -64,6 +71,12 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
   const status = requestStatus[v.status];
   const closed = ["FULFILLED", "FAILED", "CANCELLED"].includes(v.status);
   const b = baseline.data;
+  const key = `${v.id}:${run}`;  // the data's own id: a stale view from before a switch never seeds the trend
+  if (moves.current.key !== key) moves.current = { key, last: v.p, previous: null };
+  else if (Math.round(v.p * 100) !== Math.round((moves.current.last ?? v.p) * 100)) {
+    moves.current = { key, last: v.p, previous: moves.current.last };
+  }
+  const direction = trendOf(moves.current.previous, moves.current.last ?? v.p);
 
   return (
     <main className="mx-auto max-w-420 px-4 pb-16 sm:px-6">
@@ -99,34 +112,46 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
       {view.error && <p className="mt-3 text-sm text-danger">Couldn't refresh: {view.error}</p>}
 
       <div className={`mt-8 grid gap-10 ${compare ? "xl:grid-cols-[minmax(0,7fr)_minmax(20rem,3fr)]" : "xl:grid-cols-[minmax(0,1fr)_17rem]"}`}>
-        <section aria-label="RaktTrace" className="@container divide-y divide-line [&>*]:py-8 [&>*:first-child]:pt-0">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
-              RaktTrace · <span className={toneText[status.tone]}>{v.status}</span>
-            </h2>
-            <div className={`mt-1 flex items-center gap-3 text-5xl font-bold tracking-tight ${toneText[status.tone]}`}>
-              <span aria-hidden className="text-4xl">{status.icon}</span>
-              {status.label}
+        <section aria-label="RaktTrace" className="@container">
+          <div className="grid gap-x-8 gap-y-5 border-b border-line pb-6 @4xl:grid-cols-[minmax(17rem,1fr)_auto_auto]">
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
+                RaktTrace · <span className={toneText[status.tone]}>{v.status}</span>
+              </h2>
+              <div className={`flex items-center gap-2 text-3xl font-bold tracking-tight ${toneText[status.tone]}`}>
+                <span aria-hidden className="text-2xl">{status.icon}</span>
+                {status.label}
+              </div>
+              <p className="mt-1.5 max-w-2xl text-muted">{detail(v)}</p>
             </div>
-            <p className="mt-3 max-w-3xl text-lg text-muted">{detail(v)}</p>
-            {v.escalation.level > 0 && (
-              <p className="mt-3 inline-flex items-center gap-2 rounded border-2 border-danger px-3 py-1 font-semibold text-danger">
-                <span aria-hidden>!</span>
-                {ESCALATION[v.escalation.level] ?? `Escalation level ${v.escalation.level}.`}
-              </p>
-            )}
+            <Figures v={v} />
+            <Chance v={v} trend={direction} from={moves.current.previous} />
+          </div>
+          {v.escalation.level > 0 && (
+            <p className="mt-4 inline-flex items-center gap-2 rounded border-2 border-danger px-3 py-1 font-semibold text-danger">
+              <span aria-hidden>!</span>
+              {ESCALATION[v.escalation.level] ?? `Escalation level ${v.escalation.level}.`}
+            </p>
+          )}
+
+          <div className="grid gap-x-10 gap-y-6 border-b border-line py-6 @3xl:grid-cols-2">
+            <div className="space-y-5">
+              <div>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Units</h3>
+                <UnitRows v={v} />
+              </div>
+              <Ladder v={v} />
+            </div>
+            <div>
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted">Estimate</h3>
+              <Gauge v={v} decisions={decisions.data ?? []} closed={closed} />
+            </div>
           </div>
 
-          <div className="grid gap-8 @3xl:grid-cols-[auto_1fr]">
-            <div className="@3xl:border-r @3xl:border-line @3xl:pr-10">
-              <Confirmed v={v} />
-            </div>
-            <Gauge v={v} decisions={decisions.data ?? []} closed={closed} />
+          <div className="pt-6">
+            <Supply v={v} decisions={decisions.data ?? []} />
           </div>
-
-          <Ladder v={v} />
-
-          <Supply v={v} decisions={decisions.data ?? []} />
+          <Notifications requestId={id} run={run} decisions={decisions.data} label={activity} />
         </section>
 
         <aside aria-label="Today's workflow comparison" className="border-t border-line pt-8 xl:border-t-0 xl:border-l-2 xl:pt-0 xl:pl-8">

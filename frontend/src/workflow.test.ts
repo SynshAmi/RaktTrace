@@ -50,7 +50,7 @@ test("S3: no stock, donors can't be tested in time, so the gap is blocked rather
 test("S2 collected: a donor unit collected is still not ready", () => {
   const v = view({ units: 1, units_ladder: ladder(0, 6, 1, 1, 0),
     counts: { messaged: 15, yes: 6, no: 3, silent: 0, active: 1, standby: 0 } });
-  assert.deepEqual(steps(v).map((s) => s.state), ["done", "partial", "done", "done", "done", "todo"]);
+  assert.deepEqual(steps(v).map((s) => s.state), ["done", "done", "done", "done", "done", "todo"]);  // the collected unit covers the gap; it is still not ready
   assert.equal(steps(v)[2].value, "6 yes · 1 going · 0 standby");
   assert.equal(awaitingStaff(v), 1);
 });
@@ -98,8 +98,36 @@ test("units: confirmed first, the rest padded as not found", () => {
   assert.equal(units(v).filter((u) => u.state === "ready").length, supply(v).ready);
 });
 
+test("gap after stock reads as covered once donor units cover it, even after donors could no longer help", () => {
+  const v = view({ units: 1, units_ladder: ladder(0, 6, 1, 1, 1), counts: { messaged: 15, yes: 6, no: 3, silent: 0, active: 1, standby: 0 },
+    flags: { donors_can_help: false, waiting_for_stock: false } });
+  assert.equal(steps(v)[1].state, "done");
+  assert.equal(steps(v)[1].value, "1 unit, covered by donors");
+});
+
 test("gap after stock waits for pending stock answers instead of flagging donors", () => {
   const v = view({ units: 2, units_ladder: ladder(0, 0, 0, 0, 0), stock: [stock("PENDING")], flags: { donors_can_help: false, waiting_for_stock: false } });
   assert.equal(steps(v)[1].state, "todo");
   assert.equal(steps(v)[1].value, "2 units until stock answers");
+});
+
+test("probability band at the boundaries, on the shown percent", async () => {
+  const { band } = await import("./workflow.ts");
+  assert.equal(band(0.6949), "risk");   // shows 69%
+  assert.equal(band(0.695), "watch");   // shows 70%
+  assert.equal(band(0.70), "watch");
+  assert.equal(band(0.8949), "watch");  // shows 89%
+  assert.equal(band(0.895), "good");    // shows 90%
+  assert.equal(band(0.90), "good");
+  assert.equal(band(0), "risk");
+  assert.equal(band(1), "good");
+});
+
+test("trend is direction only: a rising 45% is still red", async () => {
+  const { band, trend } = await import("./workflow.ts");
+  assert.equal(trend(null, 0.45), "steady");
+  assert.equal(trend(0.40, 0.45), "up");
+  assert.equal(band(0.45), "risk");
+  assert.equal(trend(0.97, 0.95), "down");
+  assert.equal(trend(0.951, 0.949), "steady");  // both show 95%
 });

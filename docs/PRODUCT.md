@@ -40,6 +40,8 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - decision log;
    - escalation banner with the LLM brief.
 
+   Dashboard layout (25 Oct 2026): a summary strip (lifecycle status in its colour, required / arranged / ready / gap, and the estimated chance coloured by band: green ≥ 90%, amber 70–89%, red < 70%, with an arrow for its last move; display only), then units and the progress row beside the estimate's detail, then Decisions / Donors / Stock tabs (selected tab red-tinted). Decisions shows the latest decision in brief, coloured by severity, above the full log. Notifications are transient and come only from new log entries, one on screen at a time: a paused Next event gives one note; Auto and time jumps give one summary of routine decisions (with the P movement) per refresh, and each fulfilment, failure or escalation its own note, queued in order and never dropped (routine 3.5 s, escalation 8 s, fulfilled/failed 10 s).
+
    The Today's-workflow lane starts collapsed into a clearly labelled "Today's workflow · Compare" control and opens as a narrower side-by-side column (about 30%), so the presenter reveals the comparison when it matters (agreed by the team, 24 Oct 2026; both lanes stay on this screen, SPEC L-09). Its figures come only from `GET /requests/{id}/baseline`.
 3. **Phones panel:** list of simulated phones (donors, centres, family) → a chat view with tappable buttons and a text box.
 4. **Controls:**

@@ -111,7 +111,7 @@ export default function Controls(p: Props) {
   }, []);
 
   return (
-    <header ref={ref} className="sticky top-0 z-50 border-b border-white/10 bg-bar text-on-bar">
+    <header ref={ref} className="sticky top-0 z-50 border-b-2 border-tab bg-bar text-on-bar">
       <div className="mx-auto flex max-w-420 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:gap-x-6 sm:px-6">
         <div className="mr-auto flex items-baseline gap-3">
           <span className="text-xl font-bold tracking-tight">RaktTrace</span>

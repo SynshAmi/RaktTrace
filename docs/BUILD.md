@@ -81,7 +81,7 @@ rakttrace/
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
-    └── src/                   # api.ts (every call) · workflow.ts (pure readings of the API, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, Baseline, Phones
+    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, Notifications, Baseline, Phones
 ```
 
 ## 5. Data model

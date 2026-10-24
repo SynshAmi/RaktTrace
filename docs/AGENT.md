@@ -426,6 +426,12 @@ Every lane and policy reads the same draws, so differences come from decisions, 
 
 **Scenario scripts** (S1–S3) override specific centres and donors, using the order in which donors were invited, so scripts stay valid if ranking details change.
 
+**Simulated centre staff** (added 25 Oct 2026, approved by the team). A centre with no linked staff account is run by simulated staff; a linked centre never is (its cards go to the real staff only). The simulated staff answer stock holds, check donors in, screen them and confirm units ready, after their usual delays on the sim clock, and every tap they make is logged as "(simulated staff)".
+- A **simulated donor** shows, passes or fails screening from its drawn outcome (`will_show`, `will_pass`) or its scenario script.
+- A **live (Telegram) donor** has no drawn outcome and answers for themselves. Once they are ACTIVE, the simulated staff check them in at their travel time (the demo can't wait for a real trip) and screen them with a fixed draw per (seed, request, donor) at `P_PASS[product]`, so a replay screens them the same way. Pass → collected → the ready card; fail → deferred → Step 5 promotes a standby. A live donor's **Can't make it** before check-in is still a no-show.
+- **On my way** from an ACTIVE donor is recorded once and acknowledged; it is not arrival and changes no status. Only staff (real or simulated) tapping Ready for patient makes a unit ready (§6 note).
+- Synthetic names can repeat, so shared names are numbered in a world ("Fatima D. · 1", "Fatima D. · 2"); a live donor whose Telegram name matches gets " · Telegram". Ids never change.
+
 ## 10. Benchmark (`sim/benchmark.py`)
 
 - Seed 2026, N = 500 random requests.

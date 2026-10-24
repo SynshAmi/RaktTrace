@@ -100,14 +100,15 @@ export default function Supply({ v, decisions }: { v: RequestView; decisions: De
       role="tab"
       onClick={() => setOpen(id)}
       aria-selected={open === id}
-      className={`border-b-4 pb-1 text-lg font-semibold ${open === id ? "border-tab text-text" : "border-transparent text-muted hover:text-text"}`}
+      className={`-mb-px rounded-t-md border-b-4 px-4 py-1.5 text-lg font-semibold ${open === id
+        ? "border-tab bg-tab/15 text-text" : "border-transparent text-muted hover:bg-text/5 hover:text-text"}`}
     >
       {label}
     </button>
   );
   return (
     <div>
-      <div role="tablist" className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-b border-line">
+      <div role="tablist" className="flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line">
         {tab("decisions", `Decisions (${decisions.length})`)}
         {tab("donors", `Donors (${v.donors.length})`)}
         {tab("stock", `Stock (${v.stock.length})`)}

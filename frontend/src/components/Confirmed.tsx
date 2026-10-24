@@ -14,42 +14,39 @@ function Figure({ label, value, note, tone = "" }: { label: string; value: numbe
   return (
     <div>
       <dt className="text-xs font-bold uppercase tracking-wider text-muted">{label}</dt>
-      <dd className={`text-3xl font-bold leading-tight ${tone}`}>{value}</dd>
+      <dd className={`text-4xl font-bold leading-tight ${tone}`}>{value}</dd>
       <dd className="text-xs text-faint">{note}</dd>
     </div>
   );
 }
 
-/** What the request needs and where each required unit stands. Only staff confirmation makes a unit ready. */
-export default function Confirmed({ v }: { v: RequestView }) {
+/** Required, arranged (reserved or collected), ready (staff confirmed) and the gap: the request's whole need. */
+export function Figures({ v }: { v: RequestView }) {
   const s = supply(v);
-  const done = s.ready >= s.required;
   return (
-    <div>
-      <div className={`text-7xl font-bold leading-none tracking-tight ${done ? "text-success" : ""}`}>
-        {s.ready} of {s.required}
-      </div>
-      <div className="mt-2 text-lg font-semibold">required units confirmed ready by blood-centre staff</div>
+    <dl className="grid grid-cols-4 gap-x-4" aria-label="Units">
+      <Figure label="Required" value={s.required} note="asked for" />
+      <Figure label="Arranged" value={s.arranged} note="reserved or collected" tone={s.arranged > s.ready ? "text-caution" : ""} />
+      <Figure label="Ready" value={s.ready} note="staff confirmed" tone={s.ready > 0 ? "text-success" : ""} />
+      <Figure label="Gap" value={s.gap} note="still to arrange" tone={s.gap > 0 ? "text-danger" : ""} />
+    </dl>
+  );
+}
 
-      <dl className="mt-5 grid max-w-md grid-cols-4 gap-x-4">
-        <Figure label="Required" value={s.required} note="asked for" />
-        <Figure label="Arranged" value={s.arranged} note="reserved or collected" tone={s.arranged > s.ready ? "text-caution" : ""} />
-        <Figure label="Ready" value={s.ready} note="staff confirmed" tone={s.ready > 0 ? "text-success" : ""} />
-        <Figure label="Gap" value={s.gap} note="still to arrange" tone={s.gap > 0 ? "text-danger" : ""} />
-      </dl>
-
-      <ol className="mt-5 space-y-1.5" aria-label="Each required unit">
-        {units(v).map((u, i) => (
-          <li key={i} className="flex items-center gap-2.5">
-            <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 ${MARK[u.state]}`} aria-hidden />
-            <span>
-              <span className="text-muted">Unit {i + 1} of {s.required}:</span>{" "}
-              <span className={`font-semibold ${WORD[u.state]}`}>{u.label}</span>
-              {u.source && <span className="text-muted"> · {u.source}</span>}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
+/** Where each required unit stands, from the request's own holds and pledges. Only staff confirmation is ready. */
+export function UnitRows({ v }: { v: RequestView }) {
+  return (
+    <ol className="space-y-1" aria-label="Each required unit">
+      {units(v).map((u, i) => (
+        <li key={i} className="flex items-center gap-2.5">
+          <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 ${MARK[u.state]}`} aria-hidden />
+          <span>
+            <span className="text-muted">Unit {i + 1} of {v.units}:</span>{" "}
+            <span className={`font-semibold ${WORD[u.state]}`}>{u.label}</span>
+            {u.source && <span className="text-muted"> · {u.source}</span>}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
