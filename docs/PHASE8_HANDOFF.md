@@ -8,8 +8,10 @@ For Aditya. The backend for phases 1–7 is merged on `main`. The frontend talks
 cd backend && uv sync && uv run uvicorn rakt.main:app --host 127.0.0.1 --port 8000   # no --reload
 cd backend && uv run pytest -q                                                        # 295 tests, offline
 cd backend && uv run python -m rakt.sim.benchmark                                     # seed 2026, N = 500, ~25 s
+cd frontend && npm install && npm run dev                                             # dashboard on :5173, proxies /api
+cd frontend && npm test && npm run build                                              # workflow tests; type-check + production build
 ```
-Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has a token. `GET /api/health` → `{"ok", "now", "llm": "on"|"off", "telegram": "ok"|"off"}`. Vite should proxy `/api` to `:8000`.
+Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has a token. `GET /api/health` → `{"ok", "now", "llm": "on"|"off", "telegram": "ok"|"off"}`; `llm` is "on" only when the LLM is enabled and a provider in `LLM_CHAIN` has its key. Vite proxies `/api` to `:8000`; `RAKT_API=http://127.0.0.1:<port> npm run dev` points it at a backend on another port.
 
 ## 2. What to poll (every 2 s)
 
@@ -20,7 +22,7 @@ Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has 
 | Today's-workflow lane | `GET /api/requests/{id}/baseline` | timeline up to the sim clock; `truth_at_deadline` is null until the deadline |
 | Decision log | `GET /api/requests/{id}/decisions` | `summary` is the plain sentence to show |
 | Phones panel | `GET /api/sim/phones`, `GET /api/sim/phones/{id}/messages` | roles: donor, staff, family, coordinator; reading messages marks them read. Linked Telegram chats appear too (their messages are copies; a failed Telegram send shows with `channel: "sim"`). |
-| Clock | `GET /api/demo/clock` | `{now, auto}` |
+| Clock | `GET /api/demo/clock` | `{now, auto, scenario: {id, title}}`: the scenario actually running |
 | LLM | `GET /api/llm` | `{enabled, chain: [{name, healthy}]}` |
 
 Statuses: `OPEN` "Finding blood", `COVERED` "On track", `SECURED` "Blood arranged", `FULFILLED` "Ready for patient", `FAILED` "Needs help", `CANCELLED`. `escalation.level == 2` → red banner with `brief` and `call_list`.
@@ -29,8 +31,8 @@ Statuses: `OPEN` "Finding blood", `COVERED` "On track", `SECURED` "Blood arrange
 
 | Action | Endpoint |
 |---|---|
-| Pick and reset a scenario | `GET /api/demo/scenarios`, `POST /api/demo/reset {scenario}` → `{now, request_id}` |
-| Step / advance / auto | `POST /api/demo/step` → `{now, event}` · `POST /api/demo/advance {minutes}` (1–1440) · `POST /api/demo/auto {on}` (1 sim min per real s) |
+| Pick and reset a scenario | `GET /api/demo/scenarios`, `POST /api/demo/reset {scenario}` → `{now, auto, scenario, request_id}` |
+| Step / advance / auto | `POST /api/demo/step` → `{now, event, quiet}` (runs to the next visible change; `event: null` when nothing is left) · `POST /api/demo/advance {minutes}` (1–1440) · `POST /api/demo/auto {on}` (1 sim min per real s) |
 | New request | `POST /api/requests/parse {text}` → draft + `missing` + `read_by`; then `POST /api/requests {group, product, units, hospital_id, deadline_at, family?}` → RequestView or `{merged_into}` |
 | Cancel | `POST /api/requests/{id}/cancel` (409 if already closed) |
 | Tap or type on a sim phone | `POST /api/sim/reply {phone_id, button_id?, text?}` (button ids are the ones in the message's `buttons`) |
@@ -41,7 +43,8 @@ Errors use `{"detail": ...}` with 404 / 409 / 422. All state changes, API or Tel
 
 ## 4. Telegram is optional
 
-- No Telegram at all: everything works; simulated staff and donors answer.
+- No Telegram at all: everything works; simulated staff and donors answer. Taps the simulated staff make are marked "(simulated staff)" in the decision log; `collection_centre.staff` says whether a centre is simulated or linked.
+- A live donor at a simulated centre: Yes → ACTIVE (booking code) → On my way (recorded and acknowledged, still ACTIVE) → checked in by the simulated staff at their travel time → screened (fixed draw; pass → collected, else deferred and a standby is called) → staff confirm ready → FULFILLED.
 - A judge taps **Join the live demo**: their donor appears in `donors[]` with `live: true`; they are invited only if the planner picks them. In S2, run the clock with **Step** during the live window and wait for their replies.
 - A judge opens `t.me/RaktTraceDemoBot?start=staff_c_a` (or `staff_c_b`): that centre's cards go to their phone; `/reset` hands the centre back to the simulated staff. The centre's sim phone in the dashboard can always tap as that centre (a fallback).
 - `/demo/reset` keeps linked people (donors, staff, family, coordinator) and gives them fresh history. A server restart forgets them.

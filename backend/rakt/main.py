@@ -38,6 +38,6 @@ def health() -> dict:
     return {
         "ok": True,
         "now": now,
-        "llm": "on" if llm.status()["enabled"] else "off",
+        "llm": "on" if llm.reading_with_llm() else "off",
         "telegram": "ok" if telegram_bot.is_running() else "off",
     }

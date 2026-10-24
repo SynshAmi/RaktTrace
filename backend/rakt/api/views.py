@@ -75,7 +75,8 @@ def request_view(request_id: str) -> dict:
         "id": request.id, "status": request.status.value, "group": request.group.value,
         "product": request.product.value, "units": request.units,
         "hospital": {"id": hospital.id, "name": hospital.name, "area": hospital.area},
-        "collection_centre": {"id": centre.id, "name": centre.name} if centre else None,
+        "collection_centre": {"id": centre.id, "name": centre.name,  # who answers its cards: linked staff or the sim
+                              "staff": "telegram" if centre.contact.chat_id else "simulated"} if centre else None,
         "created_at": iso(request.created_at), "deadline_at": iso(request.deadline_at), "now": iso(now),
         "p": round(est.p, 4), "p_firm": round(est.p_firm, 4), "target": config.TARGET_P,
         "units_ladder": units_ladder(s, request, now),

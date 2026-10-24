@@ -10,7 +10,8 @@ from rakt import config
 from rakt.clock import Clock
 from rakt.models import BloodGroup, Channel, Contact, Product, Request, Stock
 from rakt.sim.world import (
-    DonorLatent, RequestDraws, World, draw_request, generate_world, make_donor, point_near, rng_for,
+    DonorLatent, RequestDraws, World, distinct_names, draw_request, generate_world, make_donor, point_near,
+    rng_for,
 )
 from rakt.store import AppState, Store, split_lanes
 
@@ -131,7 +132,7 @@ def request_id(scenario: Scenario) -> str:
 def load_scenario(scenario_id: str) -> AppState:
     scenario = read_scenario(scenario_id)
     world = generate_world(scenario.seed, scenario.now)
-    donors = {**world.donors, **added_donors(world, scenario)}
+    donors = distinct_names({**world.donors, **added_donors(world, scenario)})
 
     spec = scenario.request
     draws = draw_request(world, list(donors), scenario.seed, scenario.id, spec.product, scenario.now)

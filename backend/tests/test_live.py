@@ -289,9 +289,12 @@ def test_unknown_staff_link():
 
 # --- /reset (donor profile only) ---
 
-def active_judge_with_two_standbys():
-    """S2: the judge says yes first (ACTIVE); the scripted sim donors then fill two standby places."""
+def active_judge_with_two_standbys(monkeypatch):
+    """S2: the judge says yes first (ACTIVE); the scripted sim donors then fill two standby places. Centre B has
+    linked staff who haven't tapped yet, so the simulated centre doesn't check the judge in meanwhile."""
+    monkeypatch.setattr(bot, "send", lambda chat_id, text, buttons, on_fail: True)  # Telegram delivers
     state, rid = reset("s2_dengue_sdp")
+    bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
     donor_id, _ = join(JUDGE)
     first_wave(state)
     judge = pledge_of(state, donor_id)
@@ -300,8 +303,8 @@ def active_judge_with_two_standbys():
     return state, rid, donor_id, judge
 
 
-def test_reset_during_an_active_request_withdraws_and_promotes():
-    state, rid, donor_id, judge = active_judge_with_two_standbys()
+def test_reset_during_an_active_request_withdraws_and_promotes(monkeypatch):
+    state, rid, donor_id, judge = active_judge_with_two_standbys(monkeypatch)
     request = state.main.requests[rid]
     assert judge.status == S.ACTIVE and request.status == Q.COVERED
     text, buttons = bot.on_reset(JUDGE)
@@ -315,8 +318,8 @@ def test_reset_during_an_active_request_withdraws_and_promotes():
     assert live.registry.identities[JUDGE].role == "none" and live.registry.identities[JUDGE].profile is None
 
 
-def test_old_association_gets_no_more_invitations():
-    state, rid, donor_id, judge = active_judge_with_two_standbys()
+def test_old_association_gets_no_more_invitations(monkeypatch):
+    state, rid, donor_id, judge = active_judge_with_two_standbys(monkeypatch)
     bot.on_reset(JUDGE)
     run_all(state)
     assert [p for p in state.main.pledges.values() if p.donor_id == donor_id] == [judge]
@@ -333,8 +336,8 @@ def test_reset_without_a_running_request_just_clears_the_profile():
     assert live.registry.identities[JUDGE].donor_id is None
 
 
-def test_repeated_reset_is_safe():
-    state, rid, donor_id, judge = active_judge_with_two_standbys()
+def test_repeated_reset_is_safe(monkeypatch):
+    state, rid, donor_id, judge = active_judge_with_two_standbys(monkeypatch)
     bot.on_reset(JUDGE)
     snapshot = ({k: p.status for k, p in state.main.pledges.items()}, dict(state.main.promotions),
                 len(state.main.decisions), state.main.requests[rid].status)

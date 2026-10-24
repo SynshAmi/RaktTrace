@@ -31,7 +31,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - Shows a "Merged into RT-xxxx" notice if it's a duplicate.
 2. **Request view** (the hero screen). Two lanes side by side: **RaktTrace** and **Today's workflow**. Each lane shows:
    - status badge;
-   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed);
+   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed; the dashboard shows required / arranged / confirmed ready / gap, one row per required unit from the request's own holds and pledges, and a compact step row stock check → gap after stock → donor replies → ready in time → collected / reserved → confirmed by staff, all apart from P);
    - timeline.
 
    The RaktTrace lane also shows:
@@ -39,11 +39,16 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - stock list and donor list;
    - decision log;
    - escalation banner with the LLM brief.
+
+   Dashboard layout (24 Oct 2026): a summary strip (lifecycle status in its colour, required / arranged / ready / gap, and the estimated chance coloured by band: green ≥ 90%, amber 70–89%, red < 70%, with an arrow for its last move; display only), then units and the progress row beside the estimate's detail, then Decisions / Donors / Stock tabs (selected tab red-tinted). Decisions shows the latest decision in brief, coloured by severity, above the full log. Notifications are transient and come only from new log entries, one on screen at a time: a paused Next event gives one note; Auto and time jumps give one summary of routine decisions (with the P movement) per refresh, and each fulfilment, failure or escalation its own note, queued in order and never dropped (routine 3.5 s, escalation 8 s, fulfilled/failed 10 s).
+
+   The Today's-workflow lane starts collapsed into a clearly labelled "Today's workflow · Compare" control and opens as a narrower side-by-side column (about 30%), so the presenter reveals the comparison when it matters (agreed by the team, 24 Oct 2026; both lanes stay on this screen, SPEC L-09). Its figures come only from `GET /requests/{id}/baseline`.
 3. **Phones panel:** list of simulated phones (donors, centres, family) → a chat view with tappable buttons and a text box.
 4. **Controls:**
-   - scenario picker + Reset;
-   - Step, +15 min, +1 h, Auto (play/pause);
+   - scenario picker showing the running scenario (choosing one loads it from its start) + Restart;
+   - Next event (runs the clock to the next event that changes something visible; says so when none is left), +15 min, +1 h, Play/Pause;
    - sim clock;
+   - backend, LLM and Telegram status; light/dark theme;
    - LLM on/off.
 5. **Benchmark:** run N requests and seed → a results table and a simple bar chart, today vs RaktTrace.
 
@@ -62,7 +67,9 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 
 **Live donors:**
 - Both routes end in the same core registration. Live donors join the real donor pool; the planner alone decides compatibility, timing, ranking and invitations. They rank 2nd among candidates that pass every filter (AGENT §5.1); nobody is guaranteed an invitation, and custom profiles may never be contacted.
+- Synthetic names can repeat, so a shared name is numbered in the world ("Fatima D. · 1", "Fatima D. · 2"), and a Telegram name that matches a simulated donor gets " · Telegram"; ids never change (added 24 Oct 2026).
 - A live donor never gets a simulated reply; simulated outcomes are switched off by the donor's live flag, not by the channel of a message.
+- At a centre run by the simulated staff, a live donor who said yes is checked in at their travel time (the demo can't wait for a real trip) and screened with a fixed draw at the product's pass rate, so a replay screens them the same way. **On my way** is recorded and acknowledged but is not arrival; **Can't make it** before check-in still counts as a no-show. A centre with linked staff is never acted for by the simulated staff. Every tap the simulated staff make is marked "(simulated staff)" in the decision log, and the request view says who staffs the collection centre (added 24 Oct 2026, phase 8).
 - S2 is the live donor scenario. S1 and S3 keep their rules: donors can't help there, so live donors are not invited. The bot never asks which scenario to join.
 - Joining while S2 runs adds the donor to the running pool without changing earlier decisions; they can be invited from the next wave the planner sends. The bot says: "You're in. You'll get a message only if a request needs someone like you." With no scenario running, they are registered but not told they joined a request.
 - During the live window S2 runs in Step mode, so the presenter can wait for judges' replies before advancing sim time.
@@ -175,6 +182,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 |---|---|---|
 | `donor_invite` | 🩸 RaktTrace · {code}<br>{group} {product_label} needed at {centre}, {area}, by {deadline}.<br>You're a match, about {km} km away. Can you reach {centre} by {latest_arrival}?<br>Only come if you're well (no recent illness, tattoo or antibiotics). Staff at the centre will check you. | Yes, I can go · Not this time · Stop requests |
 | `donor_go` | Thank you! 🙏 Please go to {centre}, {address}.<br>Map: {maps_link}<br>Booking code: {booking_code}. Show it at the counter.<br>Please arrive by {latest_arrival}. | On my way · Can't make it |
+| `donor_on_way` | Thanks! {centre} knows you're coming. Show booking code {booking_code} at the counter. If plans change, tap Can't make it above. (an ACTIVE donor tapped On my way; recorded once, status stays ACTIVE) | — |
 | `donor_standby` | Thank you! Enough donors are heading there right now. Please stay on standby until {standby_until}. We'll message only if we need you. | OK · Not available |
 | `donor_promote` | {code}: we need you now. Can you reach {centre} by {latest_arrival}? | Going now · Can't |
 | `donor_too_late` | Thank you! This one is needed by {deadline}, so a donation at that time would be too late. We'll ask you next time. | — |
@@ -182,6 +190,7 @@ No patient names anywhere. Requests are identified by code only. Button titles �
 | `donor_not_needed` | Thank you! Enough donors are already lined up for {code}, so you're not needed this time. Stay rested for the next one 💙 | — |
 | `donor_stand_down` | Blood for {code} is arranged. You're not needed this time and stay rested for the next one. Thank you 💙 | — |
 | `donor_thanks_collected` | Thank you for donating today ❤️ You can donate again from {next_date}. | — |
+| `donor_checked_in` | {centre} has already checked you in. Thank you for coming 🙏 (On my way tapped after check-in; sent once) | — |
 | `donor_closed` | {code} is closed, so you're not needed for it any more. Thank you for being ready 💙 (sent on cancel, or when the deadline passes) | — |
 | `donor_unclear` | Sorry, I didn't get that. Please tap one of the buttons above 🙏 | — |
 

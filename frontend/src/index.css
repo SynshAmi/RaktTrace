@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+ * Dark: near-black charcoal, white text, neutral greys. Light: the cream family, lightened, with dark text.
+ * Green = staff-confirmed / fulfilled, amber = secured but not yet ready, red = urgent or failed (text or outline,
+ * never a background). The active tab is the one vibrant red accent, the same in both themes.
+ */
+:root {
+  --bg: #0d0d0d;
+  --raise: #171717;
+  --bar: #141414;
+  --line: #262626;
+  --line-strong: #404040;
+  --text: #ffffff;
+  --muted: #b8b8b8;
+  --faint: #8f8f8f;
+  --accent: #e8d99a;
+  --mark: #4ade80;
+  --on-mark: #0d0d0d;
+  --target: #e8d99a;
+  --success: #4ade80;
+  --caution: #fbbf24;
+  --tab: #e5484d;
+  --danger: #f07178;
+  --gauge: #ffffff;
+  --on-bar: #ffffff;
+  --on-bar-muted: #b8b8b8;
+  --focus: #e8d99a;
+  --header-h: 8rem;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #fbf5e6;
+  --raise: #f3ead3;
+  --bar: #1a1a1a;
+  --line: #ddd6c8;
+  --line-strong: #a8a29a;
+  --text: #111111;
+  --muted: #474747;
+  --faint: #6b6b6b;
+  --accent: #7a5d00;
+  --mark: #15803d;
+  --on-mark: #ffffff;
+  --target: #111111;
+  --success: #15803d;
+  --caution: #b45309;
+  --tab: #e5484d;
+  --danger: #b42318;
+  --gauge: #111111;
+  --on-bar: #ffffff;
+  --on-bar-muted: #c4c4c4;
+  --focus: #111111;
+  color-scheme: light;
+}
+
+@theme {
+  --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-raise: var(--raise);
+  --color-bar: var(--bar);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-mark: var(--mark);
+  --color-on-mark: var(--on-mark);
+  --color-target: var(--target);
+  --color-success: var(--success);
+  --color-caution: var(--caution);
+  --color-tab: var(--tab);
+  --color-danger: var(--danger);
+  --color-gauge: var(--gauge);
+  --color-on-bar: var(--on-bar);
+  --color-on-bar-muted: var(--on-bar-muted);
+}
+
+html {
+  scroll-padding-top: calc(var(--header-h) + 1rem); /* anchors and focus land below the sticky header */
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+header :focus-visible {
+  outline-color: #e8d99a;
+}
+
+select option {
+  background: var(--raise);
+  color: var(--text);
+}

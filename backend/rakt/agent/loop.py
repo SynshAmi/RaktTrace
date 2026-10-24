@@ -26,7 +26,8 @@ R = ReservationStatus
 S = PledgeStatus
 AWAITING_REPLY = {S.INVITED, S.NO_REPLY}
 OPEN_STATUSES = {RequestStatus.OPEN, RequestStatus.COVERED, RequestStatus.SECURED}
-_source: Channel | None = None  # channel of the inbound event being handled, for the decision log
+_source: Channel | str | None = None  # channel of the inbound event being handled, for the decision log
+SIM_STAFF = "simulated staff"  # _source for a tap the simulated centre staff made
 
 
 def reset_scenario(scenario_id: str) -> None:
@@ -232,6 +233,8 @@ def replan(request_id: str, trigger: str, event_changed_state: bool = False) -> 
     if result.actions or event_changed_state:
         if _source == Channel.TELEGRAM:
             trigger += " (via Telegram)"
+        elif _source == SIM_STAFF:
+            trigger += f" ({SIM_STAFF})"
         s.decisions.append(Decision(
             id=s.next_id("dec"), request_id=request_id, at=now, trigger=trigger, p_before=result.p_before,
             p_after=result.p_after, status=request.status, actions=[describe(a, s) for a in result.actions],
@@ -485,7 +488,7 @@ def on_timer(timer: Timer) -> None:
     elif timer.kind == "staff_check":
         staff_check(timer)
     elif timer.kind == "sim_inbound":
-        handle_inbound(Inbound(at=store.state.clock.now, **timer.payload))
+        handle_inbound(Inbound(at=store.state.clock.now, **timer.payload), simulated=True)
 
 
 def send_ready_card(timer: Timer) -> None:
@@ -521,10 +524,11 @@ def name(pledge: Pledge) -> str:
     return store.state.main.donors[pledge.donor_id].display_name
 
 
-def handle_inbound(msg: Inbound) -> None:
-    """Called by the bot and by POST /api/sim/reply."""
+def handle_inbound(msg: Inbound, simulated: bool = False) -> None:
+    """Called by the bot, by POST /api/sim/reply, and by the clock for simulated people (simulated=True)."""
     global _source
-    _source = msg.channel
+    staff_card = (msg.button_id or "")[:2] in ("R:", "V:", "D:")
+    _source = SIM_STAFF if simulated and staff_card else msg.channel
     try:
         route_inbound(msg)
     finally:
@@ -642,6 +646,17 @@ def donor_button(pledge_id: str, choice: str, sender_id: str) -> None:
     elif pledge.status == S.ACTIVE and choice == "CANT":
         pledge.status = S.NO_SHOW
         replan(pledge.request_id, f"{name(pledge)} can't make it", True)
+    elif pledge.status == S.ACTIVE and choice == "OMW" and pledge.on_way_at is None:  # repeats change nothing
+        request = s.requests[pledge.request_id]
+        pledge.on_way_at = store.state.clock.now
+        router.deliver(messages.donor_on_way(request, pledge, s.donors[pledge.donor_id],
+                                             s.centres[request.collection_centre_id]))
+        replan(pledge.request_id, f"{name(pledge)} is on the way", True)
+    elif pledge.status in (S.ARRIVED, S.COLLECTED, S.READY) and choice == "OMW" and pledge.on_way_at is None:
+        request = s.requests[pledge.request_id]  # the centre already checked them in: just say so, once
+        pledge.on_way_at = store.state.clock.now
+        router.deliver(messages.donor_text("donor_checked_in", request, s.donors[pledge.donor_id],
+                                           centre=s.centres[request.collection_centre_id].name))
 
 
 def text_target(msg: Inbound) -> tuple[str, datetime] | None:

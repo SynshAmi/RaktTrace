@@ -81,7 +81,7 @@ rakttrace/
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
-    └── src/                   # pages: NewRequest, RequestView, Benchmark; components: Lane, Gauge, Ladder, DecisionLog, Phones, Controls
+    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, Notifications, Baseline, Phones
 ```
 
 ## 5. Data model
@@ -126,7 +126,7 @@ Request:      id, group, product, units, hospital_id, deadline_at, created_at, s
               escalation_level, radius_km, collection_centre_id, family: Contact | None, brief: str | None
 Reservation:  id, request_id, centre_id, group, units_asked, units_reserved, status, listed_at, asked_at, ready_at
 Pledge:       id, request_id, donor_id, status, wave, invited_at, replied_at, reply_text,
-              available_from, booking_code, ready_at, why
+              available_from, booking_code, on_way_at, ready_at, why
 Decision:     id, request_id, at, trigger, p_before, p_after, status, actions: list[str], summary
 Message:      id, at, direction (out|in), channel, to_name, request_id, kind, body, buttons: list[Button], read_by (llm|rules|button)
 BaselineState: request_id, status, said_fulfilled_at, found_units, donors_messaged, timeline: list[str]
@@ -136,7 +136,7 @@ BaselineState: request_id, status, said_fulfilled_at, found_units, donors_messag
 
 **Reference**
 ```
-GET  /health                 → {ok, now, llm: "on"|"off", telegram: "ok"|"off"}
+GET  /health                 → {ok, now, llm: "on"|"off", telegram: "ok"|"off"}   # llm "on" only when enabled and a chain entry has its API key
 GET  /hospitals              → [{id, name, area}]
 GET  /centres                → [{id, name, area, apheresis, stock: [{product, group, listed_units, listed_age_min}]}]
 ```
@@ -162,7 +162,7 @@ POST /requests/{id}/cancel    → RequestView
 {
   "id": "RT-4821", "status": "OPEN", "group": "O_POS", "product": "SDP", "units": 1,
   "hospital": {"id": "h_city", "name": "City General Hospital", "area": "Jayanagar"},
-  "collection_centre": {"id": "c_b", "name": "Centre B"},
+  "collection_centre": {"id": "c_b", "name": "Centre B", "staff": "simulated"},   # or "telegram" (linked staff)
   "created_at": "...", "deadline_at": "...", "now": "...",
   "p": 0.91, "p_firm": 0.85, "target": 0.9,
   "units_ladder": {"found": 1, "said_yes": 1, "ready_in_time": 1, "collected_or_reserved": 0, "confirmed": 0},
@@ -198,9 +198,11 @@ POST /sim/reply                {phone_id, button_id?, text?} → {ok}
 **Demo controls**
 ```
 GET  /demo/scenarios     → [{id, title}]
-POST /demo/reset         {scenario} → {now, request_id | null}
-GET  /demo/clock         → {now, auto: bool}
-POST /demo/step          → {now, event}          # jump to the next timer/script event and process it
+POST /demo/reset         {scenario} → {now, auto, scenario: {id, title}, request_id | null}
+GET  /demo/clock         → {now, auto: bool, scenario: {id, title} | null}   # the world actually running
+POST /demo/step          → {now, event, quiet}   # process timers in order up to the next one that changes something visible
+                                                  # (states, decisions, a message to a real phone); quiet = bookkeeping timers
+                                                  # processed on the way; event null = nothing left
 POST /demo/advance       {minutes} → {now}       # processes every event in order
 POST /demo/auto          {on: bool} → {auto}     # 1 sim minute per real second
 ```
@@ -289,7 +291,7 @@ Bot commands: `/start`, `/stop`, `/reset` (PRODUCT §2.2). Agent cards (`P:`, `R
 **Ownership:**
 - core = `backend/rakt/` except `channels/` and `llm/` (Suryansh);
 - `channels/` + `llm/` = Aditya;
-- `frontend/` = Antigravity scaffold, then Aditya.
+- `frontend/` = Aditya (no mock scaffold was built; phase 8 started directly on the live API).
 
 `models.py` and `config.py` are changed by core only; everyone else imports them.
 
@@ -356,7 +358,8 @@ The executable steps and verification gates are in `IMPLEMENTATION_PLAN.md`.
 ```bash
 cd backend && uv sync && uv run uvicorn rakt.main:app --reload     # API + bot on :8000
 cd backend && uv run pytest -q                                     # tests
-cd frontend && npm install && npm run dev                          # dashboard on :5173
+cd frontend && npm install && npm run dev                          # dashboard on :5173 (RAKT_API=<url> for another backend)
+cd frontend && npm test && npm run build                           # workflow tests; type-check + build
 ```
 
 ### `.env.example`
