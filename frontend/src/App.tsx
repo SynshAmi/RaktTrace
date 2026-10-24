@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import Controls, { type Theme } from "./components/Controls";
 import RequestView from "./pages/RequestView";
+import { hhmm } from "./format";
 import { usePoll } from "./usePoll";
 
 function stored(key: string): string | null {
@@ -31,6 +32,7 @@ export default function App() {
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [controlError, setControlError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const inFlight = useRef(false);
 
@@ -59,6 +61,7 @@ export default function App() {
     inFlight.current = true;
     setBusy(label);
     setControlError(null);
+    setNotice(null);
     try {
       await run();
     } catch (e) {
@@ -89,9 +92,13 @@ export default function App() {
         health={offline ? null : health.data}
         offline={offline}
         busy={busy}
+        notice={notice}
         onLoad={load}
         onRestart={() => activeScenario && load(activeScenario.id)}
-        onStep={() => control("Next event", api.step)}
+        onStep={() => control("Next event", async () => {
+          const r = await api.step();
+          setNotice(r.event ? `Event at ${hhmm(r.event.at)} done` : "No more events in this scenario");
+        })}
         onAdvance={(m) => control(`+${m} min`, () => api.advance(m))}
         onAuto={(on) => control(on ? "Play" : "Pause", () => api.auto(on))}
         theme={theme}

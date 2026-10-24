@@ -241,3 +241,81 @@ def test_request_view_says_who_staffs_the_collection_centre(api, monkeypatch):
     monkeypatch.setattr(bot, "send", lambda chat_id, text, buttons, on_fail: True)
     bot.on_start(STAFF, "Aditya", "staff_c_b", private=True)
     assert api.get(f"/api/requests/{rid}").json()["collection_centre"]["staff"] == "telegram"
+
+
+# --- Next event: one click, one visible change ---
+
+def test_next_event_always_changes_something_visible_and_ends_where_advancing_ends(api):
+    from rakt.api.demo import footprint
+
+    for scenario_id in SCENARIOS:
+        rid = api.post("/api/demo/reset", json={"scenario": scenario_id}).json()["request_id"]
+        last_at = None
+        for _ in range(200):
+            before = footprint()
+            step = api.post("/api/demo/step").json()
+            if step["event"] is None:
+                break
+            assert footprint() != before, f"{scenario_id}: a click at {step['now']} changed nothing visible"
+            assert last_at is None or step["event"]["at"] >= last_at  # in order, never back in time
+            last_at = step["event"]["at"]
+        stepped = api.get(f"/api/requests/{rid}").json()
+        rid = api.post("/api/demo/reset", json={"scenario": scenario_id}).json()["request_id"]
+        api.post("/api/demo/advance", json={"minutes": 24 * 60})
+        advanced = api.get(f"/api/requests/{rid}").json()
+        assert (stepped["status"], stepped["units_ladder"]) == (advanced["status"], advanced["units_ladder"])
+
+
+def test_next_event_after_the_last_event_says_so_and_changes_nothing(api):
+    api.post("/api/demo/reset", json={"scenario": "s3_no_way_in_time"})
+    while api.post("/api/demo/step").json()["event"] is not None:
+        pass
+    clock = api.get("/api/demo/clock").json()
+    again = api.post("/api/demo/step").json()
+    assert again["event"] is None and again["now"] == clock["now"]
+
+
+# --- Donors who share a synthetic name ---
+
+def test_every_scenario_donor_has_a_distinct_name():
+    from rakt import store
+    from rakt.agent import loop
+
+    for scenario_id in SCENARIOS:
+        loop.reset_scenario(scenario_id)
+        names = [d.display_name for d in store.state.main.donors.values()]
+        assert len(names) == len(set(names)), scenario_id
+        assert all(d.contact.name == d.display_name for d in store.state.main.donors.values() if d.contact.phone)
+
+
+def test_a_reply_from_one_of_two_same_named_donors_moves_only_that_donor(api):
+    from rakt import store
+    from rakt.channels import simulated
+    from rakt.models import PledgeStatus
+
+    rid = api.post("/api/demo/reset", json={"scenario": "s2_dengue_sdp"}).json()["request_id"]
+    s = store.state.main
+    while not s.pledges:
+        api.post("/api/demo/step")
+    invited = {s.donors[p.donor_id].display_name: p for p in s.pledges.values()}
+    pair = sorted(n for n in invited if n.startswith("Fatima D. · "))
+    assert len(pair) == 2  # two distinct synthetic donors, told apart on every screen
+    first, second = invited[pair[0]], invited[pair[1]]
+    phone = simulated.phone_id(s.donors[second.donor_id].contact)
+    api.post("/api/sim/reply", json={"phone_id": phone, "button_id": f"P:{second.id}:NO"})
+    assert second.status == PledgeStatus.DECLINED and first.status == PledgeStatus.INVITED
+    rows = {d["name"]: d["status"] for d in api.get(f"/api/requests/{rid}").json()["donors"]}
+    assert rows[pair[1]] == "DECLINED" and rows[pair[0]] == "INVITED"
+
+
+def test_a_telegram_name_that_matches_a_simulated_donor_is_marked():
+    from rakt import store
+    from rakt.agent import live, loop
+
+    loop.reset_scenario("s2_dengue_sdp")
+    taken = next(iter(store.state.main.donors.values())).display_name
+    tap(JUDGE, "O:JOIN")
+    live.registry.identities[JUDGE].name = taken  # a judge whose Telegram name matches a simulated donor
+    loop.reset_scenario("s2_dengue_sdp")
+    donor = store.state.main.donors[live.registry.identities[JUDGE].donor_id]
+    assert donor.display_name == f"{taken} · Telegram"

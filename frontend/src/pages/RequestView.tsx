@@ -2,7 +2,6 @@ import { useState } from "react";
 import { api, type RequestSummary, type RequestView as View } from "../api";
 import Baseline from "../components/Baseline";
 import Confirmed from "../components/Confirmed";
-import DecisionLog from "../components/DecisionLog";
 import Gauge from "../components/Gauge";
 import Ladder from "../components/Ladder";
 import Supply from "../components/Supply";
@@ -20,10 +19,10 @@ function detail(v: View): string {
     case "COVERED":
       return `Enough committed stock and donors to clear the ${pct(v.target)} target. Nothing counts until staff confirm.`;
     case "SECURED":
-      return `Every unit is reserved or collected in time. Waiting for blood-centre staff to confirm ${
+      return `Secured, not yet ready: every unit is reserved or collected in time. Waiting for blood-centre staff to confirm ${
         v.units - confirmed} more unit${v.units - confirmed === 1 ? "" : "s"} ready.`;
     case "FULFILLED":
-      return "Blood-centre staff confirmed every unit ready for the patient.";
+      return `All ${v.units} required unit${v.units === 1 ? "" : "s"} confirmed ready by blood-centre staff.`;
     case "FAILED":
       return "The deadline passed without enough units confirmed ready.";
     case "CANCELLED":
@@ -102,7 +101,9 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
       <div className={`mt-8 grid gap-10 ${compare ? "xl:grid-cols-[minmax(0,7fr)_minmax(20rem,3fr)]" : "xl:grid-cols-[minmax(0,1fr)_17rem]"}`}>
         <section aria-label="RaktTrace" className="@container divide-y divide-line [&>*]:py-8 [&>*:first-child]:pt-0">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted">RaktTrace</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
+              RaktTrace · <span className={toneText[status.tone]}>{v.status}</span>
+            </h2>
             <div className={`mt-1 flex items-center gap-3 text-5xl font-bold tracking-tight ${toneText[status.tone]}`}>
               <span aria-hidden className="text-4xl">{status.icon}</span>
               {status.label}
@@ -125,9 +126,7 @@ export default function RequestView({ id, requests, onPick, version, paused }: P
 
           <Ladder v={v} />
 
-          <DecisionLog decisions={decisions.data ?? []} now={v.now} />
-
-          <Supply v={v} />
+          <Supply v={v} decisions={decisions.data ?? []} />
         </section>
 
         <aside aria-label="Today's workflow comparison" className="border-t border-line pt-8 xl:border-t-0 xl:border-l-2 xl:pt-0 xl:pl-8">

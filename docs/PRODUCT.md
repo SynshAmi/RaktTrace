@@ -31,7 +31,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
    - Shows a "Merged into RT-xxxx" notice if it's a duplicate.
 2. **Request view** (the hero screen). Two lanes side by side: **RaktTrace** and **Today's workflow**. Each lane shows:
    - status badge;
-   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed; the dashboard shows it as stock check → remaining gap → donor replies → ready in time → collected / reserved → confirmed by staff, with confirmed-ready units shown apart from P);
+   - unit ladder (per unit: found → said yes → ready in time → collected / reserved → confirmed; the dashboard shows required / arranged / confirmed ready / gap, one row per required unit from the request's own holds and pledges, and a compact step row stock check → gap after stock → donor replies → ready in time → collected / reserved → confirmed by staff, all apart from P);
    - timeline.
 
    The RaktTrace lane also shows:
@@ -44,7 +44,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 3. **Phones panel:** list of simulated phones (donors, centres, family) → a chat view with tappable buttons and a text box.
 4. **Controls:**
    - scenario picker showing the running scenario (choosing one loads it from its start) + Restart;
-   - Next event (step), +15 min, +1 h, Play/Pause;
+   - Next event (runs the clock to the next event that changes something visible; says so when none is left), +15 min, +1 h, Play/Pause;
    - sim clock;
    - backend, LLM and Telegram status; light/dark theme;
    - LLM on/off.
@@ -65,6 +65,7 @@ RaktTrace takes over at step 3 and changes what "solved" means.
 
 **Live donors:**
 - Both routes end in the same core registration. Live donors join the real donor pool; the planner alone decides compatibility, timing, ranking and invitations. They rank 2nd among candidates that pass every filter (AGENT §5.1); nobody is guaranteed an invitation, and custom profiles may never be contacted.
+- Synthetic names can repeat, so a shared name is numbered in the world ("Fatima D. · 1", "Fatima D. · 2"), and a Telegram name that matches a simulated donor gets " · Telegram"; ids never change (added 25 Oct 2026).
 - A live donor never gets a simulated reply; simulated outcomes are switched off by the donor's live flag, not by the channel of a message.
 - At a centre run by the simulated staff, a live donor who said yes is checked in at their travel time (the demo can't wait for a real trip) and screened with a fixed draw at the product's pass rate, so a replay screens them the same way. **On my way** is recorded and acknowledged but is not arrival; **Can't make it** before check-in still counts as a no-show. A centre with linked staff is never acted for by the simulated staff. Every tap the simulated staff make is marked "(simulated staff)" in the decision log, and the request view says who staffs the collection centre (added 25 Oct 2026, phase 8).
 - S2 is the live donor scenario. S1 and S3 keep their rules: donors can't help there, so live donors are not invited. The bot never asks which scenario to join.

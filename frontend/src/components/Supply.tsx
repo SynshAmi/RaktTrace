@@ -1,17 +1,18 @@
 import { useState } from "react";
-import type { DonorRow, RequestView, StockRow } from "../api";
+import type { Decision, DonorRow, RequestView, StockRow } from "../api";
 import { groupLabel, pct, statusWord, toneText, when, type Tone } from "../format";
+import DecisionLog from "./DecisionLog";
 
 // Only READY (staff confirmed) is positive; committed-but-unconfirmed states stay neutral.
 const DONOR: Record<string, [string, Tone]> = {
   READY: ["Ready ✓", "pos"], ACTIVE: ["Going (active)", "neu"], ARRIVED: ["Arrived", "neu"],
-  COLLECTED: ["Collected, awaiting staff", "neu"], STANDBY: ["Standby", "neu"],
+  COLLECTED: ["Collected, awaiting staff", "caution"], STANDBY: ["Standby", "neu"],
   INVITED: ["Invited, no reply yet", "muted"], NO_REPLY: ["No reply", "muted"], DECLINED: ["Said no", "muted"],
   RELEASED: ["Stood down", "muted"], OPTED_OUT: ["Opted out", "muted"],
   TOO_LATE: ["Too late", "neg"], DEFERRED: ["Deferred", "neg"], NO_SHOW: ["No-show", "neg"], FAILED_TEST: ["Failed testing", "neg"],
 };
 const STOCK: Record<string, [string, Tone]> = {
-  READY: ["Ready ✓", "pos"], RESERVED: ["Reserved, awaiting staff", "neu"], PENDING: ["Asked, waiting", "muted"],
+  READY: ["Ready ✓", "pos"], RESERVED: ["Reserved, awaiting staff", "caution"], PENDING: ["Asked, waiting", "muted"],
   NONE: ["None available", "neg"], EXPIRED: ["No answer", "neg"], RELEASED: ["Released", "muted"],
 };
 
@@ -88,34 +89,43 @@ function why(v: RequestView): string {
   return "None messaged yet.";
 }
 
-/** Donors and stock behind two tabs, closed by default so the main story stays short. */
-export default function Supply({ v }: { v: RequestView }) {
-  const [open, setOpen] = useState<"donors" | "stock" | null>(null);
+type Tab = "decisions" | "donors" | "stock";
+
+/** Decisions, donors and stock behind tabs; the planner's decisions show first. */
+export default function Supply({ v, decisions }: { v: RequestView; decisions: Decision[] }) {
+  const [open, setOpen] = useState<Tab>("decisions");
   const c = v.counts;
-  const tab = (id: "donors" | "stock", label: string) => (
+  const tab = (id: Tab, label: string) => (
     <button
-      onClick={() => setOpen(open === id ? null : id)}
-      aria-expanded={open === id}
-      className={`border-b-4 pb-1 text-lg font-semibold ${open === id ? "border-mark text-text" : "border-transparent text-muted hover:text-text"}`}
+      role="tab"
+      onClick={() => setOpen(id)}
+      aria-selected={open === id}
+      className={`border-b-4 pb-1 text-lg font-semibold ${open === id ? "border-tab text-text" : "border-transparent text-muted hover:text-text"}`}
     >
       {label}
     </button>
   );
   return (
     <div>
-      <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+      <div role="tablist" className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-b border-line">
+        {tab("decisions", `Decisions (${decisions.length})`)}
         {tab("donors", `Donors (${v.donors.length})`)}
         {tab("stock", `Stock (${v.stock.length})`)}
-        <span className="text-muted">
-          {c.messaged === 0
-            ? why(v)
-            : `${c.messaged} messaged · ${c.yes} said yes · ${c.active} going or in · ${c.standby} on standby · ${c.no} said no · ${c.silent} no reply yet`}
-        </span>
       </div>
-      {open === "donors" && (
-        <div className="mt-4">{v.donors.length ? <Donors donors={v.donors} now={v.now} /> : <p className="text-muted">{why(v)}</p>}</div>
-      )}
-      {open === "stock" && <div className="mt-4 max-w-4xl"><Stock stock={v.stock} /></div>}
+      <div role="tabpanel" className="mt-5">
+        {open === "decisions" && <DecisionLog decisions={decisions} now={v.now} />}
+        {open === "donors" && (
+          <>
+            <p className="mb-3 text-muted">
+              {c.messaged === 0
+                ? why(v)
+                : `${c.messaged} messaged · ${c.yes} said yes · ${c.active} going or in · ${c.standby} on standby · ${c.no} said no · ${c.silent} no reply yet`}
+            </p>
+            {v.donors.length > 0 && <Donors donors={v.donors} now={v.now} />}
+          </>
+        )}
+        {open === "stock" && <div className="max-w-4xl"><Stock stock={v.stock} /></div>}
+      </div>
     </div>
   );
 }

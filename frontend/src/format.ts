@@ -1,10 +1,11 @@
 import type { RequestStatus } from "./api";
 
-// pos = confirmed / in hand, neg = urgent or failed, neu = working on it, muted = closed or not counted.
-export type Tone = "pos" | "neg" | "neu" | "muted";
+// pos = fulfilled / confirmed, caution = secured but not ready, neg = urgent or failed, neu = working on it.
+export type Tone = "pos" | "caution" | "neg" | "neu" | "muted";
 
 export const toneText: Record<Tone, string> = {
-  pos: "text-accent",
+  pos: "text-success",
+  caution: "text-caution",
   neg: "text-danger",
   neu: "text-text",
   muted: "text-muted",
@@ -14,7 +15,7 @@ export const toneText: Record<Tone, string> = {
 export const requestStatus: Record<RequestStatus, { label: string; tone: Tone; icon: string }> = {
   OPEN: { label: "Finding blood", tone: "neu", icon: "○" },
   COVERED: { label: "On track", tone: "neu", icon: "◔" },
-  SECURED: { label: "Blood arranged", tone: "neu", icon: "◑" },
+  SECURED: { label: "Blood arranged", tone: "caution", icon: "◑" },
   FULFILLED: { label: "Ready for patient", tone: "pos", icon: "✓" },
   FAILED: { label: "Needs help", tone: "neg", icon: "!" },
   CANCELLED: { label: "Cancelled", tone: "muted", icon: "×" },

@@ -200,7 +200,9 @@ POST /sim/reply                {phone_id, button_id?, text?} → {ok}
 GET  /demo/scenarios     → [{id, title}]
 POST /demo/reset         {scenario} → {now, auto, scenario: {id, title}, request_id | null}
 GET  /demo/clock         → {now, auto: bool, scenario: {id, title} | null}   # the world actually running
-POST /demo/step          → {now, event}          # jump to the next timer/script event and process it
+POST /demo/step          → {now, event, quiet}   # process timers in order up to the next one that changes something visible
+                                                  # (states, decisions, a message to a real phone); quiet = bookkeeping timers
+                                                  # processed on the way; event null = nothing left
 POST /demo/advance       {minutes} → {now}       # processes every event in order
 POST /demo/auto          {on: bool} → {auto}     # 1 sim minute per real second
 ```

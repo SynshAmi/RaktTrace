@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from rakt import store
 from rakt.models import Channel, Contact, Donor, DonorProfile, RequestStatus
 from rakt.domain.geo import EARTH_RADIUS_KM
-from rakt.sim.world import AREAS
+from rakt.sim.world import AREAS, renamed
 
 OPEN = {RequestStatus.OPEN, RequestStatus.COVERED, RequestStatus.SECURED}
 COORDINATOR_SIM = Contact(name="Coordinator", channel=Channel.SIM, phone="coordinator")
@@ -114,7 +114,7 @@ def register_donor(chat_id: str, name: str, profile: DonorProfile) -> str:
             fresh = fresh.model_copy(update={"invites": existing.invites, "deferred_until": existing.deferred_until,
                                              "apheresis_dates": existing.apheresis_dates,
                                              "last_whole_blood_at": existing.last_whole_blood_at or fresh.last_whole_blood_at})
-        s.donors[person.donor_id] = fresh
+        s.donors[person.donor_id] = named_apart(fresh, s.donors)
     return person.donor_id
 
 
@@ -237,6 +237,13 @@ def coordinator_contact() -> Contact:
     return Contact(name="Coordinator", channel=Channel.TELEGRAM, chat_id=person.chat_id)
 
 
+def named_apart(donor: Donor, donors: dict[str, Donor]) -> Donor:
+    """A Telegram name that matches another donor's gets a marker, so the two are never confused on screen."""
+    if any(other.display_name == donor.display_name for other_id, other in donors.items() if other_id != donor.id):
+        return renamed(donor, f"{donor.display_name} · Telegram")
+    return donor
+
+
 # --- A new world ---
 
 def attach(state) -> None:
@@ -245,7 +252,7 @@ def attach(state) -> None:
     s = state.main
     for person in registry.identities.values():
         if person.role == "donor" and person.profile is not None:
-            s.donors[person.donor_id] = donor_record(person, state.clock.now)
+            s.donors[person.donor_id] = named_apart(donor_record(person, state.clock.now), s.donors)
         elif person.role == "staff" and person.centre_id in s.centres:
             centre = s.centres[person.centre_id]
             centre.contact = staff_contact(centre.name, person)

@@ -9,6 +9,7 @@ import json
 import math
 import random
 import re
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -160,6 +161,24 @@ def generate_world(seed: int, now: datetime) -> World:
         lat, lon = point_near(rng, CITY_CENTRE, config.SIM_DONOR_RADIUS_KM)
         donors[donor_id] = make_donor(rng, donor_id, group, lat, lon, now)
     return World(seed=seed, hospitals=hospitals, centres=centres, donors=donors)
+
+
+def renamed(donor: Donor, name: str) -> Donor:
+    return donor.model_copy(update={"display_name": name, "contact": donor.contact.model_copy(update={"name": name})})
+
+
+def distinct_names(donors: dict[str, Donor]) -> dict[str, Donor]:
+    """Synthetic names are drawn independently, so two donors can share one ("Fatima D."). Number each shared name
+    in id order ("Fatima D. · 1", "Fatima D. · 2") so every screen and message tells them apart."""
+    counts = Counter(d.display_name for d in donors.values())
+    seen: Counter = Counter()
+    result = {}
+    for donor_id, donor in donors.items():
+        if counts[donor.display_name] > 1:
+            seen[donor.display_name] += 1
+            donor = renamed(donor, f"{donor.display_name} · {seen[donor.display_name]}")
+        result[donor_id] = donor
+    return result
 
 
 def load_phrases() -> list[dict]:

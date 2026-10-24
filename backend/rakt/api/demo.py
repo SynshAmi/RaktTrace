@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from rakt import store
 from rakt.agent import loop
+from rakt.models import Channel
 from rakt.sim.scenarios import list_scenarios
 
 router = APIRouter()
@@ -51,14 +52,34 @@ def clock() -> dict:
         return clock_view()
 
 
+def footprint() -> tuple:
+    """What a person can see change: request, pledge and stock states, the decision log, and messages that reached
+    a real Telegram phone. Bookkeeping timers (a timeout for an answered ask, a reminder after the tap) leave it as is."""
+    state = store.state
+    s = state.main
+    live_sent = sum(m.direction == "out" and m.channel == Channel.TELEGRAM for msgs in state.inbox.values() for m in msgs)
+    return (len(s.decisions), live_sent,
+            tuple((r.id, r.status, r.escalation_level) for r in s.requests.values()),
+            tuple((p.id, p.status) for p in s.pledges.values()),
+            tuple((r.id, r.status, r.units_reserved) for r in s.reservations.values()))
+
+
 @router.post("/demo/step")
 def step() -> dict:
-    """Jump to the next timer or scripted event and process only that one."""
+    """Process timers in order up to and including the next one that changes something visible, so one click is
+    one event a person can see. Events still happen one at a time and in order; none is skipped, only not stopped on."""
     with store.lock:
-        timer = store.state.clock.step(loop.on_timer)
+        clock = store.state.clock
+        timer, quiet = None, 0
+        while True:
+            before = footprint()
+            timer = clock.step(loop.on_timer)
+            if timer is None or footprint() != before:
+                break
+            quiet += 1
         event = None if timer is None else {"kind": timer.kind, "request_id": timer.request_id,
                                             "at": timer.at.isoformat()}
-        return {"now": store.state.clock.now.isoformat(), "event": event}
+        return {"now": clock.now.isoformat(), "event": event, "quiet": quiet}
 
 
 @router.post("/demo/advance")

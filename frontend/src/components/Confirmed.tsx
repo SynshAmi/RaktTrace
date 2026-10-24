@@ -1,37 +1,55 @@
 import type { RequestView } from "../api";
-import { awaitingStaff } from "../workflow";
+import { supply, units, type UnitState } from "../workflow";
 
-const MARK = {
-  ready: "bg-mark border-mark",
-  awaiting: "border-text bg-[linear-gradient(90deg,var(--text)_50%,transparent_50%)]",
+const MARK: Record<UnitState, string> = {
+  ready: "bg-success border-success",
+  arranged: "border-caution bg-[linear-gradient(90deg,var(--caution)_50%,transparent_50%)]",
+  at_centre: "border-text bg-[linear-gradient(90deg,var(--text)_50%,transparent_50%)]",
+  committed: "border-text",
   missing: "border-faint",
 };
-const WORD = { ready: "ready ✓", awaiting: "reserved or collected, awaiting staff", missing: "not yet" };
+const WORD: Record<UnitState, string> = { ready: "text-success", arranged: "text-caution", at_centre: "", committed: "", missing: "text-faint" };
 
-/** Units staff confirmed ready, apart from the estimate: only this count is blood. */
-export default function Confirmed({ v }: { v: RequestView }) {
-  const n = v.units;
-  const confirmed = Math.min(v.units_ladder.confirmed, n);
-  const awaiting = awaitingStaff(v);
-  const done = confirmed >= n;
+function Figure({ label, value, note, tone = "" }: { label: string; value: number; note: string; tone?: string }) {
   return (
     <div>
-      <div className={`text-7xl font-bold leading-none tracking-tight ${done ? "text-accent" : ""}`}>
-        {confirmed} of {n}
+      <dt className="text-xs font-bold uppercase tracking-wider text-muted">{label}</dt>
+      <dd className={`text-3xl font-bold leading-tight ${tone}`}>{value}</dd>
+      <dd className="text-xs text-faint">{note}</dd>
+    </div>
+  );
+}
+
+/** What the request needs and where each required unit stands. Only staff confirmation makes a unit ready. */
+export default function Confirmed({ v }: { v: RequestView }) {
+  const s = supply(v);
+  const done = s.ready >= s.required;
+  return (
+    <div>
+      <div className={`text-7xl font-bold leading-none tracking-tight ${done ? "text-success" : ""}`}>
+        {s.ready} of {s.required}
       </div>
-      <div className="mt-2 text-lg font-semibold">confirmed ready by blood-centre staff</div>
-      <ul className="mt-4 space-y-1.5">
-        {Array.from({ length: n }, (_, i) => {
-          const state = i < confirmed ? "ready" : i < confirmed + awaiting ? "awaiting" : "missing";
-          return (
-            <li key={i} className="flex items-center gap-2.5">
-              <span className={`inline-block h-3.5 w-3.5 rounded-full border-2 ${MARK[state]}`} aria-hidden />
-              <span className={state === "missing" ? "text-faint" : ""}>Unit {i + 1}: {WORD[state]}</span>
-            </li>
-          );
-        })}
-      </ul>
-      {!done && <p className="mt-3 max-w-sm text-muted">Nothing counts until blood-centre staff confirm a unit ready.</p>}
+      <div className="mt-2 text-lg font-semibold">required units confirmed ready by blood-centre staff</div>
+
+      <dl className="mt-5 grid max-w-md grid-cols-4 gap-x-4">
+        <Figure label="Required" value={s.required} note="asked for" />
+        <Figure label="Arranged" value={s.arranged} note="reserved or collected" tone={s.arranged > s.ready ? "text-caution" : ""} />
+        <Figure label="Ready" value={s.ready} note="staff confirmed" tone={s.ready > 0 ? "text-success" : ""} />
+        <Figure label="Gap" value={s.gap} note="still to arrange" tone={s.gap > 0 ? "text-danger" : ""} />
+      </dl>
+
+      <ol className="mt-5 space-y-1.5" aria-label="Each required unit">
+        {units(v).map((u, i) => (
+          <li key={i} className="flex items-center gap-2.5">
+            <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 ${MARK[u.state]}`} aria-hidden />
+            <span>
+              <span className="text-muted">Unit {i + 1} of {s.required}:</span>{" "}
+              <span className={`font-semibold ${WORD[u.state]}`}>{u.label}</span>
+              {u.source && <span className="text-muted"> · {u.source}</span>}
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

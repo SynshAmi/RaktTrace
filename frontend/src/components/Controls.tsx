@@ -11,6 +11,7 @@ type Props = {
   health: Health | null;
   offline: boolean;
   busy: string | null;
+  notice: string | null;
   onLoad: (id: string) => void;
   onRestart: () => void;
   onStep: () => void;
@@ -22,12 +23,14 @@ type Props = {
 
 const shortTitle = (title: string) => title.split(":")[0];
 
-function BarButton({ children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
+function BarButton({ children, working, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { working?: boolean }) {
   return (
     <button
       {...rest}
+      aria-busy={working || undefined}
       className="inline-flex items-center gap-1.5 rounded-md border border-on-bar/30 px-2.5 py-1 text-sm text-on-bar sm:px-3 sm:py-1.5 sm:text-base hover:border-on-bar/50 hover:bg-on-bar/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
     >
+      {working && <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-on-bar border-t-transparent" aria-hidden />}
       {children}
     </button>
   );
@@ -157,35 +160,36 @@ export default function Controls(p: Props) {
                 <option key={s.id} value={s.id} title={s.title}>{shortTitle(s.title)}</option>
               ))}
             </select>
-            <BarButton onClick={p.onRestart} disabled={disabled || !p.active} title="Load this scenario again from its start" aria-label="Restart scenario">
+            <BarButton onClick={p.onRestart} disabled={disabled || !p.active} working={p.busy?.startsWith("Loading")} title="Load this scenario again from its start" aria-label="Restart scenario">
               ↺<span className="hidden lg:inline">Restart</span>
             </BarButton>
           </Group>
 
           <Group label="Simulation">
-            <BarButton onClick={p.onStep} disabled={disabled} title="Jump the sim clock to the next scheduled event and process it">
+            <BarButton onClick={p.onStep} disabled={disabled} working={p.busy === "Next event"}
+              title="Run the sim clock to the next event that changes something, and process it">
               ⏭ Next<span className="hidden lg:inline"> event</span>
             </BarButton>
             <span className="hidden text-sm text-on-bar-muted lg:inline">Advance</span>
-            <BarButton onClick={() => p.onAdvance(15)} disabled={disabled} title="Move the sim clock forward 15 minutes">+15 min</BarButton>
-            <BarButton onClick={() => p.onAdvance(60)} disabled={disabled} title="Move the sim clock forward 1 hour">+1 h</BarButton>
+            <BarButton onClick={() => p.onAdvance(15)} disabled={disabled} working={p.busy === "+15 min"} title="Move the sim clock forward 15 minutes">+15 min</BarButton>
+            <BarButton onClick={() => p.onAdvance(60)} disabled={disabled} working={p.busy === "+60 min"} title="Move the sim clock forward 1 hour">+1 h</BarButton>
             <BarButton
               onClick={() => p.onAuto(!playing)}
               disabled={disabled}
+              working={p.busy === "Play" || p.busy === "Pause"}
               aria-pressed={playing}
               title={playing ? "Pause the sim clock" : "Run the sim clock at 1 sim minute per second"}
             >
               {playing ? "❚❚ Pause" : "▶ Play"}
             </BarButton>
-            <span className="sr-only text-sm text-on-bar-muted md:not-sr-only md:min-w-36" aria-live="polite">
-              {p.busy ? `${p.busy}…` : playing ? "Playing · 1 sim min / s" : "Paused"}
+            <span className="basis-full truncate text-sm text-on-bar-muted md:max-w-56 md:basis-auto" aria-live="polite">
+              {p.busy ? `${p.busy}…` : p.notice ?? (playing ? "Playing · 1 sim min / s" : "Paused")}
             </span>
           </Group>
 
           <div className="ml-auto text-right" aria-label="Sim clock">
             <div className="hidden text-xs text-on-bar-muted lg:block">
               {p.clock ? `Sim clock · ${clockDay(p.clock.now)}` : "Sim clock"}
-              {p.active && <span> · {shortTitle(p.active.title)}</span>}
             </div>
             <div className="text-2xl font-bold leading-none sm:text-3xl">{p.clock ? hhmm(p.clock.now) : "--:--"}</div>
           </div>

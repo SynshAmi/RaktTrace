@@ -22,11 +22,11 @@ export default function DecisionLog({ decisions, now }: { decisions: Decision[];
 
   return (
     <div className="max-w-4xl">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-muted">Latest planner decision</h3>
+      <h3 className="text-sm font-bold uppercase tracking-wider text-muted">Latest decision</h3>
       {!latest ? (
         <p className="mt-3 text-muted">No decisions yet.</p>
       ) : (
-        <div className="mt-3 border-l-4 border-mark pl-4">
+        <div className="mt-3 border-l-4 border-line-strong pl-4">
           <div className="text-muted">
             {when(latest.at, now)} · because: <span className="text-text">{groupsInText(latest.trigger)}</span>
           </div>

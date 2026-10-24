@@ -115,7 +115,8 @@ export const api = {
   scenarios: () => call<Scenario[]>("/demo/scenarios"),
   clock: () => call<Clock>("/demo/clock"),
   reset: (scenario: string) => call<Clock & { request_id: string | null }>("/demo/reset", { scenario }),
-  step: () => call<{ now: string; event: unknown }>("/demo/step", {}),
+  step: () => call<{ now: string; event: { kind: string; request_id: string | null; at: string } | null; quiet: number }>(
+    "/demo/step", {}),
   advance: (minutes: number) => call<{ now: string }>("/demo/advance", { minutes }),
   auto: (on: boolean) => call<{ auto: boolean }>("/demo/auto", { on }),
   requests: () => call<RequestSummary[]>("/requests"),

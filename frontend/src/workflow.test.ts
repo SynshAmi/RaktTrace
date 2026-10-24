@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Decision, RequestView } from "./api.ts";
-import { awaitingStaff, lastChange, steps } from "./workflow.ts";
+import { awaitingStaff, lastChange, steps, supply, units } from "./workflow.ts";
 
 function view(over: Partial<RequestView> & Pick<RequestView, "units" | "units_ladder">): RequestView {
   return {
@@ -17,7 +17,11 @@ function view(over: Partial<RequestView> & Pick<RequestView, "units" | "units_la
 const ladder = (found: number, said_yes: number, ready_in_time: number, collected_or_reserved: number, confirmed: number) =>
   ({ found, said_yes, ready_in_time, collected_or_reserved, confirmed });
 
-const stock = (status: string) => ({ reservation_id: status, centre: "Centre", units_asked: 1, units_reserved: 1, status, listed_age_min: 1, p: 1 });
+const stock = (status: string, centre = "Centre", reserved = 1) =>
+  ({ reservation_id: `${centre}-${status}`, centre, units_asked: reserved, units_reserved: reserved, status, listed_age_min: 1, p: 1 });
+
+const donor = (name: string, status: string) => ({ pledge_id: name, name, group: "O_POS", km: 1, status, p: 0.5,
+  booking_code: null, ready_at: null, why: "", reply_text: null, read_by: null, live: false });
 
 test("S1 secured: stock covers both units, no donors needed, nothing counts until staff confirm", () => {
   const v = view({ units: 2, units_ladder: ladder(2, 0, 2, 2, 0), stock: [stock("RESERVED"), stock("RESERVED"), stock("RELEASED")],
@@ -73,4 +77,29 @@ test("last change is the latest decision that moved P by a whole percent", () =>
     ({ id, request_id: "RT-1", at: "", trigger: id, p_before, p_after, status: "OPEN", actions: [], summary: "" }) as Decision;
   assert.equal(lastChange([d("a", 0, 0.95), d("b", 0.85, 0.93), d("c", 0.931, 0.934), d("d", 1, 1)])?.id, "b");
   assert.equal(lastChange([d("a", 1, 1)]), undefined);
+});
+
+
+test("supply: required, arranged, confirmed ready and the gap come from the ladder, never above what is required", () => {
+  assert.deepEqual(supply(view({ units: 2, units_ladder: ladder(1, 0, 1, 1, 1) })), { required: 2, arranged: 1, ready: 1, gap: 1 });
+  assert.deepEqual(supply(view({ units: 1, units_ladder: ladder(3, 0, 3, 3, 0) })), { required: 1, arranged: 1, ready: 0, gap: 0 });
+});
+
+test("units: one row per required unit, from real holds and pledges; standby and yes are never ready", () => {
+  const v = view({ units: 2, units_ladder: ladder(1, 2, 2, 1, 0),
+    stock: [stock("RESERVED", "Centre A"), stock("NONE", "Centre D")],
+    donors: [donor("Fatima D. · 1", "STANDBY"), donor("Sneha V.", "ACTIVE")] });
+  assert.deepEqual(units(v).map((u) => [u.state, u.source]), [["arranged", "Centre A stock"], ["committed", "Sneha V."]]);
+});
+
+test("units: confirmed first, the rest padded as not found", () => {
+  const v = view({ units: 3, units_ladder: ladder(1, 0, 1, 1, 1), stock: [stock("READY", "Centre B")], donors: [donor("Asha H.", "ARRIVED")] });
+  assert.deepEqual(units(v).map((u) => u.state), ["ready", "at_centre", "missing"]);
+  assert.equal(units(v).filter((u) => u.state === "ready").length, supply(v).ready);
+});
+
+test("gap after stock waits for pending stock answers instead of flagging donors", () => {
+  const v = view({ units: 2, units_ladder: ladder(0, 0, 0, 0, 0), stock: [stock("PENDING")], flags: { donors_can_help: false, waiting_for_stock: false } });
+  assert.equal(steps(v)[1].state, "todo");
+  assert.equal(steps(v)[1].value, "2 units until stock answers");
 });

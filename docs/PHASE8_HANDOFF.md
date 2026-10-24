@@ -32,7 +32,7 @@ Statuses: `OPEN` "Finding blood", `COVERED` "On track", `SECURED` "Blood arrange
 | Action | Endpoint |
 |---|---|
 | Pick and reset a scenario | `GET /api/demo/scenarios`, `POST /api/demo/reset {scenario}` → `{now, auto, scenario, request_id}` |
-| Step / advance / auto | `POST /api/demo/step` → `{now, event}` · `POST /api/demo/advance {minutes}` (1–1440) · `POST /api/demo/auto {on}` (1 sim min per real s) |
+| Step / advance / auto | `POST /api/demo/step` → `{now, event, quiet}` (runs to the next visible change; `event: null` when nothing is left) · `POST /api/demo/advance {minutes}` (1–1440) · `POST /api/demo/auto {on}` (1 sim min per real s) |
 | New request | `POST /api/requests/parse {text}` → draft + `missing` + `read_by`; then `POST /api/requests {group, product, units, hospital_id, deadline_at, family?}` → RequestView or `{merged_into}` |
 | Cancel | `POST /api/requests/{id}/cancel` (409 if already closed) |
 | Tap or type on a sim phone | `POST /api/sim/reply {phone_id, button_id?, text?}` (button ids are the ones in the message's `buttons`) |
