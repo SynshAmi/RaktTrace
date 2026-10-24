@@ -102,3 +102,87 @@ select option {
   background: var(--raise);
   color: var(--text);
 }
+
+/* Donor map (components/DonorMap.tsx). Light mode shows the street tiles as they are; dark mode inverts them so
+   streets stay vivid on a dark ground. Markers use the theme tokens. */
+.rakt-map,
+.rakt-map.leaflet-container {
+  background: var(--raise);  /* Leaflet's own grey would show while tiles load or if they fail */
+  font-family: var(--font-sans);
+}
+
+/* The streets are the backdrop: faded so donors, centres and hospitals carry the map. */
+.rakt-map .leaflet-tile-pane {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
+:root[data-theme="dark"] .rakt-map .leaflet-tile-pane {
+  opacity: 0.55;
+  filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.7);
+}
+
+.rakt-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--muted);
+}
+
+.rakt-map .leaflet-control-attribution a,
+.rakt-map .leaflet-bar a {
+  color: var(--text);
+}
+
+.rakt-map .leaflet-bar a {
+  background: var(--raise);
+  border-color: var(--line);
+}
+
+.rk-label.leaflet-tooltip {
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  box-shadow: none;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 8px;
+}
+
+.rk-label.leaflet-tooltip::before {
+  display: none;
+}
+
+.rk-centre {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text);
+  border-radius: 3px;
+  background: var(--bg);
+}
+
+.rk-centre.is-collection {
+  width: 28px;
+  height: 28px;
+  background: var(--tab);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab) 35%, transparent);
+}
+
+.rk-hospital {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rk-hospital.is-requesting {
+  border-color: var(--tab);
+  color: var(--tab);
+}

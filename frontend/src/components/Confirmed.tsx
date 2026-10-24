@@ -13,9 +13,9 @@ const WORD: Record<UnitState, string> = { ready: "text-success", arranged: "text
 function Figure({ label, value, note, tone = "" }: { label: string; value: number; note: string; tone?: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold uppercase tracking-wider text-muted">{label}</dt>
+      <dt className="text-sm font-bold uppercase tracking-wider text-muted">{label}</dt>
       <dd className={`text-4xl font-bold leading-tight ${tone}`}>{value}</dd>
-      <dd className="text-xs text-faint">{note}</dd>
+      <dd className="text-sm text-faint">{note}</dd>
     </div>
   );
 }

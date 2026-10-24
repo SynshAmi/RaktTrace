@@ -10,14 +10,15 @@ import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from rakt import store
+from rakt import config, store
 from rakt.models import Channel, Contact, Donor, DonorProfile, RequestStatus
 from rakt.domain.geo import EARTH_RADIUS_KM
-from rakt.sim.world import AREAS, renamed
+from rakt.sim.world import AREAS, CENTRES, nearest_area, renamed
 
 OPEN = {RequestStatus.OPEN, RequestStatus.COVERED, RequestStatus.SECURED}
 COORDINATOR_SIM = Contact(name="Coordinator", channel=Channel.SIM, phone="coordinator")
 JITTER_KM = 0.3
+SIMULATED_FROM = "c_b"  # the live demo's collection centre (S2): simulated locations are placed relative to it
 
 # S2 demo templates: O+, apheresis-capable, eligible, within ~2 km of Centre B (Jayanagar). Reused round-robin.
 TEMPLATES = [
@@ -78,19 +79,38 @@ def scenario_running() -> bool:
 
 # --- Donors ---
 
+def simulated_location(chat_id: str, travel_min: int) -> tuple[float, float, str]:
+    """(lat, lon, nearest area): a point `travel_min` from the live demo's collection centre under the planner's own
+    travel model (straight line × ROAD_FACTOR at CITY_SPEED_KMPH), in a direction fixed by the chat, so the same
+    answer always lands in the same place. A visual stand-in, not a route or a real location."""
+    _, _, c_lat, c_lon, _, _ = next(c for c in CENTRES if c[0] == SIMULATED_FROM)
+    distance = travel_min / 60 * config.CITY_SPEED_KMPH / config.ROAD_FACTOR
+    angle = random.Random(f"simulated-location:{chat_id}").uniform(0, 2 * math.pi)
+    deg_per_km = math.degrees(1 / EARTH_RADIUS_KM)
+    lat = round(c_lat + distance * math.cos(angle) * deg_per_km, 5)
+    lon = round(c_lon + distance * math.sin(angle) * deg_per_km / math.cos(math.radians(c_lat)), 5)
+    return lat, lon, nearest_area(lat, lon)
+
+
 def donor_record(person: Identity, now: datetime) -> Donor:
-    """A donor built from the profile, with no scenario history (no invites, deferrals or donations here)."""
+    """A donor built from the profile, with no scenario history (no invites, deferrals or donations here).
+    Positions are stable per chat: templates and area centres get a small fixed jitter, simulated points none."""
     profile = person.profile
+    basis = "area" if profile.lat is None else profile.location_basis
     lat, lon = (profile.lat, profile.lon) if profile.lat is not None else AREAS[profile.area]
-    rng = random.Random(f"live:{person.chat_id}")
-    deg = math.degrees(JITTER_KM / EARTH_RADIUS_KM)
+    if basis != "simulated":
+        rng = random.Random(f"live:{person.chat_id}")
+        deg = math.degrees(JITTER_KM / EARTH_RADIUS_KM)
+        lat, lon = round(lat + rng.uniform(-deg, deg), 5), round(lon + rng.uniform(-deg, deg), 5)
     days = LAST_DONATION_DAYS[profile.last_donation]
     return Donor(
         id=person.donor_id, display_name=person.name, group=profile.group, sex=profile.sex, age=profile.age,
-        weight_kg=profile.weight_kg, lat=round(lat + rng.uniform(-deg, deg), 5), lon=round(lon + rng.uniform(-deg, deg), 5),
+        weight_kg=profile.weight_kg, lat=lat, lon=lon,
         area=profile.area, contact=Contact(name=person.name, channel=Channel.TELEGRAM, chat_id=person.chat_id),
         opted_out=person.opted_out, apheresis_ok=profile.apheresis_ok,
         last_whole_blood_at=now - timedelta(days=days) if days else None, telegram_demo=True,
+        location="approximate" if basis == "area" else "synthetic", location_basis=basis,
+        stated_travel_min=profile.stated_travel_min,
     )
 
 

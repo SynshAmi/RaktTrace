@@ -6,7 +6,7 @@ For Aditya. The backend for phases 1–7 is merged on `main`. The frontend talks
 
 ```bash
 cd backend && uv sync && uv run uvicorn rakt.main:app --host 127.0.0.1 --port 8000   # no --reload
-cd backend && uv run pytest -q                                                        # 295 tests, offline
+cd backend && uv run pytest -q                                                        # 325 tests, offline
 cd backend && uv run python -m rakt.sim.benchmark                                     # seed 2026, N = 500, ~25 s
 cd frontend && npm install && npm run dev                                             # dashboard on :5173, proxies /api
 cd frontend && npm test && npm run build                                              # workflow tests; type-check + production build
@@ -21,6 +21,7 @@ Startup loads `DEFAULT_SCENARIO` (S2) and starts the Telegram bot if `.env` has 
 | RaktTrace lane | `GET /api/requests/{id}` | RequestView: status, `p` / `p_firm` / `target`, `units_ladder`, `stock[]`, `donors[]` (each with `live` for Telegram donors), `counts`, `escalation {level, brief, call_list}`, `flags` |
 | Today's-workflow lane | `GET /api/requests/{id}/baseline` | timeline up to the sim clock; `truth_at_deadline` is null until the deadline |
 | Decision log | `GET /api/requests/{id}/decisions` | `summary` is the plain sentence to show |
+| Map tab | `GET /api/map?request_id=…` | centres, hospitals, donors with positions, provenance (`location`, `location_basis`), pledge state and the planner's `candidate` flag; read-only (BUILD §5.3) |
 | Phones panel | `GET /api/sim/phones`, `GET /api/sim/phones/{id}/messages` | roles: donor, staff, family, coordinator; reading messages marks them read. Linked Telegram chats appear too (their messages are copies; a failed Telegram send shows with `channel: "sim"`). |
 | Clock | `GET /api/demo/clock` | `{now, auto, scenario: {id, title}}`: the scenario actually running |
 | LLM | `GET /api/llm` | `{enabled, chain: [{name, healthy}]}` |
@@ -54,4 +55,5 @@ Errors use `{"detail": ...}` with 404 / 409 / 422. All state changes, API or Tel
 - Benchmark numbers are from the synthetic world: show them as simulation results, never real-world evidence. False-done 0% is by construction.
 - Only the essential benchmark tier exists (today vs rakttrace, nominal); broadcast, threshold, stress and calibration come after the rehearsal.
 - Two demo-only phrases in the cache ("shaam ko 6 baje", "tonight after 9 PM") read as "now"; they are never drawn by the sim.
-- Manual Telegram checks still pending (record in PROGRESS when done): S2 stepped with `/demo/step`; a live donor tap; a Hinglish reply with the LLM on and off; a linked vs an unlinked centre; donor and staff `/reset`; repeated `/start`.
+- Manual Telegram checks: the live donor and staff flow in S2 on real accounts was reported working by the team (24 Oct). Still not individually confirmed: a Hinglish reply with the LLM on and off; donor and staff `/reset` scope; repeated `/start`; the new profile questions (travel time, Pick my area / Simulate my location) on a real phone.
+- Map tiles come from tile.openstreetmap.org (keyless; light interactive use under the OSMF tile policy; attribution shown). Without internet the map says so and still draws every marker.

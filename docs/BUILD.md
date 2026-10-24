@@ -12,7 +12,7 @@ Stack, folders, data shapes, coding rules, git, and the phases. What to build is
 | Telegram | `python-telegram-bot` (async, long polling, inline buttons; no public URL needed) |
 | LLM | `openai` Python SDK pointed at any OpenAI-compatible provider, JSON output, fallback chain |
 | Storage | In-memory, reset from seed. No database. |
-| Frontend | React + Vite + TypeScript · Tailwind · Recharts · plain `fetch` with 2 s polling |
+| Frontend | React + Vite + TypeScript · Tailwind · Recharts · Leaflet (donor map; keyless OpenStreetMap tiles, attribution shown) · plain `fetch` with 2 s polling |
 | Running | One laptop: backend on `:8000`, Vite dev server proxying `/api`. Phone hotspot as backup internet. |
 
 Versions: latest stable on the day, pinned by `uv.lock` and `package-lock.json`.
@@ -81,7 +81,7 @@ rakttrace/
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
-    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, Notifications, Baseline, Phones
+    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, DonorMap, MapProfile, Notifications, Baseline, Phones · mapview.ts (pure)
 ```
 
 ## 5. Data model
@@ -121,7 +121,8 @@ Centre:       id, name, area, address, lat, lon, phone, accepts_donors, apheresi
 Stock:        centre_id, product, group, listed_units, listed_at, true_units      # true_units hidden from API/agent
 Donor:        id, display_name, group, sex, age, weight_kg, lat, lon, area, contact,
               consent, opted_out, apheresis_ok, last_whole_blood_at, apheresis_dates,
-              donation_verified, deferred_until, invites: list[datetime], telegram_demo: bool
+              donation_verified, deferred_until, invites: list[datetime], telegram_demo: bool,
+              location (synthetic | approximate), location_basis (seeded | template | simulated | area), stated_travel_min
 Request:      id, group, product, units, hospital_id, deadline_at, created_at, status,
               escalation_level, radius_km, collection_centre_id, family: Contact | None, brief: str | None
 Reservation:  id, request_id, centre_id, group, units_asked, units_reserved, status, listed_at, asked_at, ready_at
@@ -226,6 +227,34 @@ CI value = {mean, lo, hi, excludes_zero}
 # demo, never calls an LLM provider or Telegram) and saves backend/bench/results_nominal_<seed>.json.
 GET  /benchmark/cached   ?seed=2026&regime=nominal → the saved run (the committed seed-2026, N = 500 run), or 404
 ```
+
+**Map** (read-only projection, under `store.lock`; added 24 Oct 2026)
+```
+GET  /map?request_id=RT-4821   (request_id optional; unknown → 404)
+  → {now, request: {id, status, group, product, units, radius_km, collection_centre_id} | null,
+     centres: [{id, name, area, lat, lon, apheresis, accepts_donors, staff: "simulated"|"telegram", collection,
+                holds: [{status, units_asked, units_reserved}]}],
+     hospitals: [{id, name, area, lat, lon, requesting}],
+     donors: [{id, name, group, lat, lon, area, location, location_basis, live, stated_travel_min, opted_out,
+               km, travel_min,            # to the collection centre, by the planner's own travel model (null if none)
+               candidate,                 # in planner `ranking.candidates` right now (OPEN/COVERED only)
+               pledge: {status, booking_code, on_way, why} | null}],
+     unplaced}                            # donors without a usable position (not drawn)
+```
+```
+GET  /map/profile/{donor|centre|hospital}/{id}?request_id=RT-4821   (unknown id or request → 404; other kind → 422)
+  donor    → {name, group, sex, age, weight_kg, area, live, apheresis_ok, donation_verified, last_whole_blood_at,
+              apheresis_last_year, last_apheresis_at, deferred_until, opted_out, invites_last_72h, location,
+              location_basis, stated_travel_min, km, travel_min, centre,
+              rule_check: {product, passes, reasons} | null,   # domain/eligibility at now + REPLY_LAG + travel
+              candidate_why,                                   # the planner's `why` if it lists them now
+              pledge: {status, wave, invited_at, replied_at, reply_text, available_from, booking_code, on_way_at,
+                       ready_at, why} | null}
+  centre   → {name, area, address, phone (synthetic), apheresis, accepts_donors, staff, listed_stock (listed units
+              only, never true units), holds, donors_coming: [{donor_id, name, group, status, booking_code, request_id}]}
+  hospital → {name, area, own_centre, requests: [{id, group, product, units, status, deadline_at}]}
+```
+Positions are the coordinates the planner's distance and travel checks already use; every one is synthetic or approximate. No chat ids, phones or usernames of people are returned (the centre phone is the synthetic one already in call lists). The map never decides anything.
 The frontend renders the optional parts only if present.
 
 **Errors.** FastAPI's `{"detail": ...}` body: 404 unknown request, phone or scenario; 409 cancelling a closed request; 422 invalid input (unknown hospital, deadline not after the sim clock, a reply with neither button nor text, `/demo/advance` minutes outside 0–1440). `POST /requests` with `family: "sim"` creates the sim phone `family_<request id>`; `"telegram"` uses the linked family chat if there is one (otherwise a sim placeholder that a later `?start=family` link replaces). `POST /demo/reset` returns the scenario's request id. Each donor in RequestView also carries `live` (a linked Telegram donor).
@@ -276,7 +305,10 @@ attach(state)                                            # after a scenario (re)
 coordinator_contact() -> Contact                         # the linked coordinator chat, else the sim phone
 loop.reset_scenario(scenario_id)                         # load + attach + start (phase 7's reset endpoint calls it)
 DonorProfile:  group, area, sex, age, weight_kg, apheresis_ok, last_donation ("never" | "over_4_months" | "recent"),
-               lat?, lon?                                # set by the demo templates; otherwise the area's centre
+               lat?, lon?,                               # set by the demo templates and simulated locations; otherwise the area's centre
+               location_basis ("template" | "area" | "simulated"), stated_travel_min?   # never read by the planner
+live.simulated_location(chat_id, travel_min) -> (lat, lon, area)   # a point travel_min from Centre B by the planner's
+                                                                   # travel model, direction fixed per chat
 ```
 On reset the world is rebuilt with every linked live donor (`telegram_demo = True`, Telegram contact) in the rakttrace lane only, with fresh scenario history and their opt-out kept.
 

@@ -95,6 +95,53 @@ export type Decision = {
   summary: string;
 };
 
+// GET /map: positions the planner's own checks use. Every one is synthetic or approximate, never a real location.
+export type MapCentre = {
+  id: string; name: string; area: string; lat: number; lon: number; apheresis: boolean; accepts_donors: boolean;
+  staff: "simulated" | "telegram"; collection: boolean;
+  holds: { status: string; units_asked: number; units_reserved: number }[];
+};
+export type MapHospital = { id: string; name: string; area: string; lat: number; lon: number; requesting: boolean };
+export type MapDonor = {
+  id: string; name: string; group: string; lat: number; lon: number; area: string;
+  location: "synthetic" | "approximate"; location_basis: "seeded" | "template" | "simulated" | "area";
+  live: boolean; stated_travel_min: number | null; opted_out: boolean;
+  km: number | null; travel_min: number | null; candidate: boolean;
+  pledge: { status: string; booking_code: string | null; on_way: boolean; why: string } | null;
+};
+export type MapView = {
+  now: string;
+  request: { id: string; status: RequestStatus; group: string; product: string; units: number; radius_km: number;
+    collection_centre_id: string | null } | null;
+  centres: MapCentre[]; hospitals: MapHospital[]; donors: MapDonor[]; unplaced: number;
+};
+
+// GET /map/profile/{kind}/{id}: one marker's synthetic profile, for the map's detail panel. No contact details.
+export type DonorProfile = {
+  kind: "donor"; id: string; name: string; group: string; sex: "M" | "F" | null; age: number; weight_kg: number;
+  area: string; live: boolean; apheresis_ok: boolean; donation_verified: boolean; last_whole_blood_at: string | null;
+  apheresis_last_year: number; last_apheresis_at: string | null; deferred_until: string | null; opted_out: boolean;
+  invites_last_72h: number; location: "synthetic" | "approximate"; location_basis: MapDonor["location_basis"];
+  stated_travel_min: number | null; km: number | null; travel_min: number | null; centre: string | null;
+  rule_check: { product: string; passes: boolean; reasons: string[] } | null; candidate_why: string | null;
+  pledge: { status: string; wave: number; invited_at: string; replied_at: string | null; reply_text: string | null;
+    available_from: string | null; booking_code: string | null; on_way_at: string | null; ready_at: string | null;
+    why: string } | null;
+};
+export type CentreProfile = {
+  kind: "centre"; id: string; name: string; area: string; address: string; phone: string; apheresis: boolean;
+  accepts_donors: boolean; staff: "simulated" | "telegram";
+  listed_stock: { product: string; group: string; listed_units: number; listed_age_min: number }[];
+  holds: { request_id: string; status: string; units_asked: number; units_reserved: number }[];
+  donors_coming: { donor_id: string; name: string; group: string; status: string; booking_code: string | null;
+    request_id: string }[];
+};
+export type HospitalProfile = {
+  kind: "hospital"; id: string; name: string; area: string; own_centre: string | null;
+  requests: { id: string; group: string; product: string; units: number; status: RequestStatus; deadline_at: string }[];
+};
+export type Profile = DonorProfile | CentreProfile | HospitalProfile;
+
 export class ApiError extends Error {}
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -123,4 +170,7 @@ export const api = {
   request: (id: string) => call<RequestView>(`/requests/${id}`),
   baseline: (id: string) => call<BaselineView>(`/requests/${id}/baseline`),
   decisions: (id: string) => call<Decision[]>(`/requests/${id}/decisions`),
+  map: (id: string) => call<MapView>(`/map?request_id=${encodeURIComponent(id)}`),
+  profile: (kind: Profile["kind"], id: string, requestId: string) =>
+    call<Profile>(`/map/profile/${kind}/${encodeURIComponent(id)}?request_id=${encodeURIComponent(requestId)}`),
 };
