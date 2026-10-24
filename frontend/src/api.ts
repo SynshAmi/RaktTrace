@@ -95,6 +95,27 @@ export type Decision = {
   summary: string;
 };
 
+// GET /map: positions the planner's own checks use. Every one is synthetic or approximate, never a real location.
+export type MapCentre = {
+  id: string; name: string; area: string; lat: number; lon: number; apheresis: boolean; accepts_donors: boolean;
+  staff: "simulated" | "telegram"; collection: boolean;
+  holds: { status: string; units_asked: number; units_reserved: number }[];
+};
+export type MapHospital = { id: string; name: string; area: string; lat: number; lon: number; requesting: boolean };
+export type MapDonor = {
+  id: string; name: string; group: string; lat: number; lon: number; area: string;
+  location: "synthetic" | "approximate"; location_basis: "seeded" | "template" | "simulated" | "area";
+  live: boolean; stated_travel_min: number | null; opted_out: boolean;
+  km: number | null; travel_min: number | null; candidate: boolean;
+  pledge: { status: string; booking_code: string | null; on_way: boolean; why: string } | null;
+};
+export type MapView = {
+  now: string;
+  request: { id: string; status: RequestStatus; group: string; product: string; units: number; radius_km: number;
+    collection_centre_id: string | null } | null;
+  centres: MapCentre[]; hospitals: MapHospital[]; donors: MapDonor[]; unplaced: number;
+};
+
 export class ApiError extends Error {}
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -123,4 +144,5 @@ export const api = {
   request: (id: string) => call<RequestView>(`/requests/${id}`),
   baseline: (id: string) => call<BaselineView>(`/requests/${id}/baseline`),
   decisions: (id: string) => call<Decision[]>(`/requests/${id}/decisions`),
+  map: (id: string) => call<MapView>(`/map?request_id=${encodeURIComponent(id)}`),
 };

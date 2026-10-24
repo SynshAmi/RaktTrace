@@ -24,10 +24,13 @@ def join(chat_id: str, name: str = "Judge A."):
 
 
 def create(chat_id: str, answers: dict, name: str = "Judge B."):
+    """Answers every question that applies; without travel/location answers it picks an area, as the bot did before."""
+    answers = {"travel_min": "20", "location": "area", **answers}
     bot.on_callback(chat_id, name, "O:CREATE")
     reply = None
     for step, (field, _, _) in enumerate(bot.QUESTIONS):
-        reply = bot.on_callback(chat_id, name, f"Q:{step}:{answers[field]}")
+        if bot.applies(step, answers):
+            reply = bot.on_callback(chat_id, name, f"Q:{step}:{answers[field]}")
     return live.registry.identities[chat_id].donor_id, reply
 
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Decision, DonorRow, RequestView, StockRow } from "../api";
 import { groupLabel, pct, statusWord, toneText, when, type Tone } from "../format";
 import DecisionLog from "./DecisionLog";
+import DonorMap from "./DonorMap";
 
 // Only READY (staff confirmed) is positive; committed-but-unconfirmed states stay neutral.
 const DONOR: Record<string, [string, Tone]> = {
@@ -89,10 +90,11 @@ function why(v: RequestView): string {
   return "None messaged yet.";
 }
 
-type Tab = "decisions" | "donors" | "stock";
+type Tab = "decisions" | "donors" | "stock" | "map";
 
 /** Decisions, donors and stock behind tabs; the planner's decisions show first. */
-export default function Supply({ v, decisions }: { v: RequestView; decisions: Decision[] }) {
+export default function Supply({ v, decisions, version, paused }:
+  { v: RequestView; decisions: Decision[]; version: number; paused: boolean }) {
   const [open, setOpen] = useState<Tab>("decisions");
   const c = v.counts;
   const tab = (id: Tab, label: string) => (
@@ -112,6 +114,7 @@ export default function Supply({ v, decisions }: { v: RequestView; decisions: De
         {tab("decisions", `Decisions (${decisions.length})`)}
         {tab("donors", `Donors (${v.donors.length})`)}
         {tab("stock", `Stock (${v.stock.length})`)}
+        {tab("map", "Map")}
       </div>
       <div role="tabpanel" className="mt-5">
         {open === "decisions" && <DecisionLog decisions={decisions} now={v.now} />}
@@ -126,6 +129,7 @@ export default function Supply({ v, decisions }: { v: RequestView; decisions: De
           </>
         )}
         {open === "stock" && <div className="max-w-4xl"><Stock stock={v.stock} /></div>}
+        {open === "map" && <DonorMap requestId={v.id} version={version} paused={paused} />}
       </div>
     </div>
   );

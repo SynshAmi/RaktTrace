@@ -149,7 +149,7 @@ export default function RequestView({ id, requests, onPick, version, paused, run
           </div>
 
           <div className="pt-6">
-            <Supply v={v} decisions={decisions.data ?? []} />
+            <Supply v={v} decisions={decisions.data ?? []} version={version} paused={paused} />
           </div>
           <Notifications requestId={id} run={run} decisions={decisions.data} label={activity} />
         </section>

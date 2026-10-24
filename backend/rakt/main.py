@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from rakt import llm, store
 from rakt.agent import loop
 from rakt.api import benchmark, demo, requests, sim
+from rakt.api import map as map_api
 from rakt.api import llm as llm_api
 from rakt.channels import telegram_bot
 from rakt.config import settings
@@ -27,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="RaktTrace", lifespan=lifespan)
-for module in (requests, sim, demo, llm_api, benchmark):
+for module in (requests, sim, demo, llm_api, benchmark, map_api):
     app.include_router(module.router, prefix="/api")
 
 

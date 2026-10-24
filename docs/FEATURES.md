@@ -38,7 +38,7 @@ Utilities (duplicate merge, stop-forwarding, stand-down, standby, reminders, boo
 
 - "Why?" button: replaced by the decision summaries, which already state the trade-off.
 - Recurring patients: medium size and not needed to prove the core; pitch as "what's next".
-- Mission-control view: frontend-only polish with a map; not needed to prove the core.
+- Mission-control view: frontend-only polish with a map; not needed to prove the core. **Map built on 24 Oct 2026 ahead of phase 10 by team decision** (branch `maps`, PRODUCT §2.1 Map tab): a read-only projection of the planner's state, no new planner logic.
 - Shortage nudges: repeated shortages at a centre → suggest a donation drive to that centre, which approves it.
 - Donor reliability memory: learn who replies and shows up.
 - Voice-note replies.

@@ -102,3 +102,78 @@ select option {
   background: var(--raise);
   color: var(--text);
 }
+
+/* Donor map (components/DonorMap.tsx). Light mode shows the street tiles as they are; dark mode inverts them so
+   streets stay vivid on a dark ground. Markers use the theme tokens. */
+.rakt-map,
+.rakt-map.leaflet-container {
+  background: var(--raise);  /* Leaflet's own grey would show while tiles load or if they fail */
+  font-family: var(--font-sans);
+}
+
+:root[data-theme="dark"] .rakt-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(1.6);
+}
+
+.rakt-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--muted);
+}
+
+.rakt-map .leaflet-control-attribution a,
+.rakt-map .leaflet-bar a {
+  color: var(--text);
+}
+
+.rakt-map .leaflet-bar a {
+  background: var(--raise);
+  border-color: var(--line);
+}
+
+.rk-label.leaflet-tooltip {
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  box-shadow: none;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+
+.rk-label.leaflet-tooltip::before {
+  display: none;
+}
+
+.rk-centre {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text);
+  border-radius: 3px;
+  background: var(--bg);
+}
+
+.rk-centre.is-collection {
+  width: 20px;
+  height: 20px;
+  background: var(--tab);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab) 35%, transparent);
+}
+
+.rk-hospital {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rk-hospital.is-requesting {
+  border-color: var(--tab);
+  color: var(--tab);
+}

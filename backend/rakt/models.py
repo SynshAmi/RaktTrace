@@ -134,6 +134,11 @@ class ReplyRead(BaseModel):
     read_by: ReadBy = "rules"
 
 
+# How a donor's map position was set: the seeded world, a live-demo template, a point simulated from the donor's
+# stated travel time, or the centre of the area they picked (approximate).
+LocationBasis = Literal["seeded", "template", "simulated", "area"]
+
+
 class DonorProfile(BaseModel):
     """Synthetic donor answers from Telegram onboarding (PRODUCT §2.2). Approximate area only, never an address."""
     group: BloodGroup
@@ -143,8 +148,10 @@ class DonorProfile(BaseModel):
     weight_kg: int
     apheresis_ok: bool = False
     last_donation: Literal["never", "over_4_months", "recent"] = "never"
-    lat: float | None = None  # set by demo templates; otherwise the area's centre is used
+    lat: float | None = None  # set by demo templates and simulated locations; otherwise the area's centre is used
     lon: float | None = None
+    location_basis: LocationBasis = "template"
+    stated_travel_min: int | None = None  # the donor's own answer; shown on the map, never read by the planner
 
 
 # --- State ---
@@ -200,6 +207,10 @@ class Donor(BaseModel):
     deferred_until: datetime | None = None
     invites: list[datetime] = Field(default_factory=list)
     telegram_demo: bool = False
+    # Every position is synthetic or approximate, never a real location (PRODUCT §2.2).
+    location: Literal["synthetic", "approximate"] = "synthetic"
+    location_basis: LocationBasis = "seeded"
+    stated_travel_min: int | None = None
 
 
 class Request(BaseModel):

@@ -24,7 +24,12 @@ Reply = tuple[str, list[Button]]
 
 QUESTIONS = [  # (field, question, [(button title, value)]); answers only: the planner decides eligibility
     ("group", "Your blood group?", [(GROUP_LABELS[g], g.value) for g in BloodGroup]),
-    ("area", "Roughly where are you? (an area is enough, never your address)", [(a, a) for a in AREAS]),
+    ("travel_min", "About how long would it take you to reach a blood centre? A rough guess is fine.",
+     [("About 10 min", "10"), ("About 20 min", "20"), ("About 30 min", "30"), ("45 min or more", "45")]),
+    ("location", "Where should the demo map put you? Pick your area (approximate, never your address), or let the "
+                 "demo simulate a spot about that far from Centre B. No GPS is used.",
+     [("Pick my area", "area"), ("Simulate my location", "simulate")]),
+    ("area", "Which area? (an area is enough, never your address)", [(a, a) for a in AREAS]),  # only for "area"
     ("sex", "Sex? (donation intervals differ)", [("Male", "M"), ("Female", "F"), ("Prefer not to say", "-")]),
     ("age", "Age?", [("18–24", "21"), ("25–40", "32"), ("41–60", "50"), ("Over 60", "62")]),
     ("weight_kg", "Weight?", [("Under 45 kg", "42"), ("45–49 kg", "47"), ("50–59 kg", "55"), ("60 kg or more", "70")]),
@@ -47,13 +52,29 @@ def choices() -> list[Button]:
     return [Button(id="O:JOIN", title="Join the live demo"), Button(id="O:CREATE", title="Create my profile")]
 
 
-def question(step: int) -> Reply:
+def applies(step: int, progress: dict) -> bool:
+    """The area question is asked only when the donor picks their area (until they choose, assume they will)."""
+    return QUESTIONS[step][0] != "area" or progress.get("location", "area") == "area"
+
+
+def next_step(step: int, progress: dict) -> int:
+    step += 1
+    while step < len(QUESTIONS) and not applies(step, progress):
+        step += 1
+    return step
+
+
+def question(step: int, progress: dict) -> Reply:
     field, text, options = QUESTIONS[step]
-    return f"({step + 1}/{len(QUESTIONS)}) {text}", [Button(id=f"Q:{step}:{value}", title=t) for t, value in options]
+    shown = sum(applies(i, progress) for i in range(step)) + 1
+    total = sum(applies(i, progress) for i in range(len(QUESTIONS)))
+    return f"({shown}/{total}) {text}", [Button(id=f"Q:{step}:{value}", title=t) for t, value in options]
 
 
 def describe(profile: DonorProfile) -> str:
-    return f"{GROUP_LABELS[profile.group]} donor near {profile.area}"
+    where = {"area": f"near {profile.area} (approximate area)",
+             "simulated": f"near {profile.area} (simulated location)"}.get(profile.location_basis, f"near {profile.area}")
+    return f"{GROUP_LABELS[profile.group]} donor {where}"
 
 
 def registered_text(profile: DonorProfile, resumed: bool) -> str:
@@ -79,7 +100,8 @@ def on_start(chat_id: str, name: str, param: str, private: bool) -> Reply:
         role = "the family contact" if person.role == "family" else "the coordinator"
         return f"You're linked as {role}.", []
     if chat_id in _onboarding:  # resume the half-finished questions
-        text, buttons = question(_onboarding[chat_id]["step"])
+        progress = _onboarding[chat_id]
+        text, buttons = question(progress["step"], progress)
         return "Let's carry on where you left off. " + text, buttons
     if person is not None and person.role == "donor" and person.profile is not None:
         if person.opted_out:
@@ -98,7 +120,7 @@ def on_callback(chat_id: str, name: str, data: str) -> Reply | None:
         return registered_text(live.registry.identities[chat_id].profile, resumed), []
     if data == "O:CREATE":
         _onboarding[chat_id] = {"step": 0}
-        return question(0)
+        return question(0, _onboarding[chat_id])
     if data.startswith("Q:"):
         return answer(chat_id, name, data)
     loop.handle_inbound(Inbound(channel=Channel.TELEGRAM, sender_id=chat_id, button_id=data, at=store.state.clock.now))
@@ -108,20 +130,27 @@ def on_callback(chat_id: str, name: str, data: str) -> Reply | None:
 def answer(chat_id: str, name: str, data: str) -> Reply:
     _, step_text, value = data.split(":", 2)
     progress = _onboarding.get(chat_id)
-    if progress is None or str(progress["step"]) != step_text:  # a stale or replayed button: start again safely
+    allowed = progress is not None and str(progress["step"]) == step_text         and value in {v for _, v in QUESTIONS[progress["step"]][2]}
+    if not allowed:  # a stale, replayed or unknown button (e.g. an unsupported area): start again safely
         _onboarding[chat_id] = {"step": 0}
-        text, buttons = question(0)
+        text, buttons = question(0, _onboarding[chat_id])
         return "Let's start again. " + text, buttons
     field = QUESTIONS[progress["step"]][0]
     progress[field] = value
-    progress["step"] += 1
+    progress["step"] = next_step(progress["step"], progress)
     if progress["step"] < len(QUESTIONS):
-        return question(progress["step"])
+        return question(progress["step"], progress)
     del _onboarding[chat_id]
+    travel = int(progress["travel_min"])
+    if progress["location"] == "simulate":
+        lat, lon, area = live.simulated_location(chat_id, travel)
+        where = {"area": area, "lat": lat, "lon": lon, "location_basis": "simulated"}
+    else:
+        where = {"area": progress["area"], "location_basis": "area"}
     profile = DonorProfile(
-        group=progress["group"], area=progress["area"], sex=None if progress["sex"] == "-" else progress["sex"],
+        group=progress["group"], sex=None if progress["sex"] == "-" else progress["sex"],
         age=int(progress["age"]), weight_kg=int(progress["weight_kg"]), last_donation=progress["last_donation"],
-        apheresis_ok=progress["apheresis_ok"] == "yes",
+        apheresis_ok=progress["apheresis_ok"] == "yes", stated_travel_min=travel, **where,
     )
     loop.register_donor(chat_id, name, profile)
     return registered_text(profile, resumed=False), []
