@@ -134,12 +134,10 @@ export default function RequestView({ id, requests, onPick, version, paused, run
             </p>
           )}
 
-          <div className="grid gap-x-10 gap-y-6 border-b border-line py-6 @3xl:grid-cols-2">
-            <div className="space-y-5">
-              <div>
-                <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">Units</h3>
-                <UnitRows v={v} />
-              </div>
+          <div className="space-y-8 border-b border-line py-6">
+            <div>
+              <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">Units</h3>
+              <UnitRows v={v} />
             </div>
             <div>
               <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Estimate</h3>

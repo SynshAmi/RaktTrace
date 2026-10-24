@@ -45,6 +45,7 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
   const fitted = useRef<string | null>(null);
   const [tiles, setTiles] = useState<"loading" | "ok" | "failed">("loading");
   const [selected, setSelected] = useState<Selected>(null);
+  const [legend, setLegend] = useState(false);
   const profile = usePoll<Profile | null>(
     () => (selected ? api.profile(selected.type, selected.id, requestId) : Promise.resolve(null)),
     selected ? `${requestId}:${selected.type}:${selected.id}` : `${requestId}:none`, version, undefined, paused);
@@ -145,44 +146,49 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
           </div>
         )}
         {tiles === "failed" && (
-          <p role="status" className="absolute top-3 left-3 right-3 z-[1000] rounded-md border border-danger bg-raise px-3 py-2 text-sm font-semibold text-danger">
+          <p role="status" className="absolute right-3 bottom-8 left-3 z-[1000] rounded-md border border-danger bg-raise px-3 py-2 text-sm font-semibold text-danger">
             Street tiles couldn't load (no internet?). Positions and statuses on this map are still live.
           </p>
         )}
+
+        <button onClick={() => setLegend(!legend)} aria-expanded={legend} aria-controls="map-legend"
+          className="absolute top-3 right-3 z-[1000] rounded-md border border-line-strong bg-raise/95 px-3 py-1.5 font-semibold text-text shadow hover:border-text">
+          {legend ? "Hide legend ✕" : "Legend"}
+        </button>
+        {legend && (
+          <div id="map-legend" role="dialog" aria-label="Map legend"
+            className="absolute top-14 right-3 z-[1000] max-h-[calc(100%-4.5rem)] w-80 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-lg border border-line-strong bg-raise/95 p-4 text-sm shadow-lg">
+            <ul className="space-y-1.5">
+              <li className="flex items-center gap-2"><span className="rk-centre is-collection" aria-hidden /> Collection centre</li>
+              <li className="flex items-center gap-2"><span className="rk-centre" aria-hidden /> Other blood centre</li>
+              <li className="flex items-center gap-2"><span className="rk-hospital is-requesting" aria-hidden>+</span> Requesting hospital</li>
+              {(Object.keys(KIND) as Kind[]).map((k) => (
+                <li key={k} className={`flex items-center gap-2 ${counts && counts[k] === 0 ? "opacity-50" : ""}`}>
+                  <Swatch k={k} /> {KIND[k].label}{counts ? ` (${counts[k]})` : ""}
+                </li>
+              ))}
+              {view?.request && (
+                <li className="flex items-center gap-2">
+                  <span aria-hidden className="inline-block w-5 border-t-2 border-dashed border-accent" />
+                  Planner's search radius now: {view.request.radius_km} km, straight line
+                </li>
+              )}
+            </ul>
+            <p className="mt-3 text-faint">
+              White ring = live Telegram donor · dashed ring = approximate (an area they picked). Every position is
+              synthetic or approximate: no GPS, no real addresses. The planner decides who is invited; the map only shows it.
+              {view && view.unplaced > 0 && ` ${view.unplaced} donor(s) have no usable position and aren't drawn.`}
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-5 text-sm">
-        <div className="min-h-24 rounded-lg border border-line bg-raise p-4 text-base lg:max-h-[34rem] lg:overflow-y-auto" aria-live="polite">
-          {selected && view
-            ? <MapProfile profile={profile.data} error={profile.error} now={view.now} requestId={requestId}
-                onDonor={(id) => setSelected({ type: "donor", id })} />
-            : <p className="text-muted">Tap a donor, blood centre or hospital to see their profile.</p>}
-        </div>
-
-        <div>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Legend</h3>
-          <ul className="space-y-1.5">
-            <li className="flex items-center gap-2"><span className="rk-centre is-collection" aria-hidden /> Collection centre</li>
-            <li className="flex items-center gap-2"><span className="rk-centre" aria-hidden /> Other blood centre</li>
-            <li className="flex items-center gap-2"><span className="rk-hospital is-requesting" aria-hidden>+</span> Requesting hospital</li>
-            {(Object.keys(KIND) as Kind[]).map((k) => (
-              <li key={k} className={`flex items-center gap-2 ${counts && counts[k] === 0 ? "opacity-50" : ""}`}>
-                <Swatch k={k} /> {KIND[k].label}{counts ? ` (${counts[k]})` : ""}
-              </li>
-            ))}
-            {view?.request && (
-              <li className="flex items-center gap-2">
-                <span aria-hidden className="inline-block w-5 border-t-2 border-dashed border-accent" />
-                Planner's search radius now: {view.request.radius_km} km, straight line
-              </li>
-            )}
-          </ul>
-          <p className="mt-3 text-xs text-faint">
-            White ring = live Telegram donor · dashed ring = approximate (an area they picked). Every position is
-            synthetic or approximate: no GPS, no real addresses. The planner decides who is invited; the map only shows it.
-            {view && view.unplaced > 0 && ` ${view.unplaced} donor(s) have no usable position and aren't drawn.`}
-          </p>
-        </div>
+      <div className="min-h-24 rounded-lg border border-line bg-raise p-4 text-base lg:h-[34rem] lg:overflow-y-auto" aria-live="polite">
+        {selected && view
+          ? <MapProfile profile={profile.data} error={profile.error} now={view.now} requestId={requestId}
+              onDonor={(id) => setSelected({ type: "donor", id })} />
+          : <p className="text-muted">Tap a donor, blood centre or hospital on the map to see their profile.
+              The <b>Legend</b> button on the map explains the colours.</p>}
       </div>
     </div>
   );

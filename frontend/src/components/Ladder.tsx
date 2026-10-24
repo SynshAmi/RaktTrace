@@ -5,8 +5,8 @@ function Dot({ state, ready }: { state: State; ready?: boolean }) {
   if (ready) return <span className="grid h-7 w-7 place-items-center rounded-full bg-mark text-sm font-bold text-on-mark">✓</span>;
   if (state === "blocked") return <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-danger text-sm font-bold text-danger">!</span>;
   const look = {
-    done: "bg-text border-text",
-    partial: "border-text bg-[linear-gradient(90deg,var(--text)_50%,transparent_50%)]",
+    done: "bg-accent border-accent",
+    partial: "border-caution bg-[linear-gradient(90deg,var(--caution)_50%,transparent_50%)]",
     todo: "border-faint",
     skip: "border-faint opacity-50",
   }[state];
@@ -15,9 +15,10 @@ function Dot({ state, ready }: { state: State; ready?: boolean }) {
 
 const STATE_WORD: Record<State, string> = { done: "done", partial: "partly", todo: "not yet", skip: "skipped", blocked: "blocked" };
 
-// The bar above each step: the request's path, read left to right.
+// The bar above each step, in the palette: soft yellow done, amber partly, red blocked, green only for
+// staff-confirmed ready (the `ready` step), grey not yet.
 const BAR: Record<State, string> = {
-  done: "bg-text", partial: "bg-[linear-gradient(90deg,var(--text)_50%,var(--line)_50%)]", todo: "bg-line",
+  done: "bg-accent", partial: "bg-[linear-gradient(90deg,var(--caution)_50%,var(--line)_50%)]", todo: "bg-line",
   skip: "bg-line opacity-50", blocked: "bg-danger",
 };
 
@@ -32,11 +33,11 @@ export default function Ladder({ v }: { v: RequestView }) {
       <ol className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 @4xl:grid-cols-6">
         {all.map((s, i) => (
           <li key={s.label}>
-            <div className={`mb-3 h-1.5 rounded-full ${s.ready ? "bg-mark" : BAR[s.state]}`} aria-hidden />
+            <div className={`mb-3 h-2 rounded-full ${s.ready ? "bg-mark" : BAR[s.state]}`} aria-hidden />
             <div className="flex items-center gap-2">
               <Dot state={s.state} ready={s.ready} />
               <span className="sr-only">{STATE_WORD[s.state]}</span>
-              {i === current && <span className="rounded bg-text px-2 py-0.5 text-sm font-bold text-bg">now</span>}
+              {i === current && <span className="rounded bg-tab px-2 py-0.5 text-sm font-bold text-white">now</span>}
             </div>
             <div className={`mt-2 text-lg font-semibold leading-snug ${s.state === "todo" || s.state === "skip" ? "text-faint" : ""}`}>
               {i + 1}. {s.label}
