@@ -81,7 +81,7 @@ rakttrace/
 │   ├── scenarios/             # s1_surgery_tonight.json · s2_dengue_sdp.json · s3_no_way_in_time.json
 │   └── tests/
 └── frontend/
-    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, DonorMap, Notifications, Baseline, Phones · mapview.ts (pure)
+    └── src/                   # api.ts (every call) · workflow.ts, notify.ts (pure, tested by `npm test`) · pages: NewRequest, RequestView, Benchmark; components: Controls, Confirmed, Gauge, Ladder, DecisionLog, Supply, DonorMap, MapProfile, Notifications, Baseline, Phones · mapview.ts (pure)
 ```
 
 ## 5. Data model
@@ -241,7 +241,20 @@ GET  /map?request_id=RT-4821   (request_id optional; unknown → 404)
                pledge: {status, booking_code, on_way, why} | null}],
      unplaced}                            # donors without a usable position (not drawn)
 ```
-Positions are the coordinates the planner's distance and travel checks already use; every one is synthetic or approximate. No chat ids, phones or usernames are returned. The map never decides anything.
+```
+GET  /map/profile/{donor|centre|hospital}/{id}?request_id=RT-4821   (unknown id or request → 404; other kind → 422)
+  donor    → {name, group, sex, age, weight_kg, area, live, apheresis_ok, donation_verified, last_whole_blood_at,
+              apheresis_last_year, last_apheresis_at, deferred_until, opted_out, invites_last_72h, location,
+              location_basis, stated_travel_min, km, travel_min, centre,
+              rule_check: {product, passes, reasons} | null,   # domain/eligibility at now + REPLY_LAG + travel
+              candidate_why,                                   # the planner's `why` if it lists them now
+              pledge: {status, wave, invited_at, replied_at, reply_text, available_from, booking_code, on_way_at,
+                       ready_at, why} | null}
+  centre   → {name, area, address, phone (synthetic), apheresis, accepts_donors, staff, listed_stock (listed units
+              only, never true units), holds, donors_coming: [{donor_id, name, group, status, booking_code, request_id}]}
+  hospital → {name, area, own_centre, requests: [{id, group, product, units, status, deadline_at}]}
+```
+Positions are the coordinates the planner's distance and travel checks already use; every one is synthetic or approximate. No chat ids, phones or usernames of people are returned (the centre phone is the synthetic one already in call lists). The map never decides anything.
 The frontend renders the optional parts only if present.
 
 **Errors.** FastAPI's `{"detail": ...}` body: 404 unknown request, phone or scenario; 409 cancelling a closed request; 422 invalid input (unknown hospital, deadline not after the sim clock, a reply with neither button nor text, `/demo/advance` minutes outside 0–1440). `POST /requests` with `family: "sim"` creates the sim phone `family_<request id>`; `"telegram"` uses the linked family chat if there is one (otherwise a sim placeholder that a later `?start=family` link replaces). `POST /demo/reset` returns the scenario's request id. Each donor in RequestView also carries `live` (a linked Telegram donor).

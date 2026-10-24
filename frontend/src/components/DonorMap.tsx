@@ -1,10 +1,10 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
-import { api, type MapCentre, type MapDonor, type MapHospital, type MapView } from "../api";
-import { groupLabel } from "../format";
-import { drawOrder, kind, KIND, pledgeLine, provenance, tally, type Kind } from "../mapview";
+import { api, type Profile } from "../api";
+import { drawOrder, kind, KIND, tally, type Kind } from "../mapview";
 import { usePoll } from "../usePoll";
+import MapProfile from "./MapProfile";
 
 // OpenStreetMap's standard street tiles: keyless, attribution required, light interactive use only
 // (https://operations.osmfoundation.org/policies/tiles/). Dark mode inverts them in CSS (index.css, .rakt-map).
@@ -26,54 +26,6 @@ function useTheme() {
   return theme;
 }
 
-function DonorDetail({ d, centreName }: { d: MapDonor; centreName: string | null }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="text-lg font-bold">
-        {d.name} <span className="font-normal text-muted">{groupLabel(d.group)}</span>
-        {d.live && <span className="ml-2 rounded border border-accent px-1.5 text-xs font-semibold text-accent">Live · Telegram</span>}
-      </div>
-      <div className="font-semibold">{pledgeLine(d)}</div>
-      {d.pledge?.why && <div className="text-sm text-muted">Planner's reason: {d.pledge.why}</div>}
-      {d.travel_min !== null && centreName && (
-        <div className="text-sm text-muted">
-          Planner's travel estimate to {centreName}: about {d.travel_min} min ({d.km} km straight line × road factor at city speed)
-        </div>
-      )}
-      {d.stated_travel_min !== null && <div className="text-sm text-muted">They said: about {d.stated_travel_min} min away</div>}
-      <div className="text-sm text-faint">{provenance(d)}</div>
-      {d.opted_out && <div className="text-sm text-muted">Opted out (STOP): never contacted.</div>}
-    </div>
-  );
-}
-
-function CentreDetail({ c, view }: { c: MapCentre; view: MapView }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="text-lg font-bold">{c.name} <span className="font-normal text-muted">{c.area}</span></div>
-      {c.collection && <div className="font-semibold text-tab">Collection centre for {view.request?.id}</div>}
-      <div className="text-sm text-muted">
-        Staff: {c.staff === "telegram" ? "linked on Telegram" : "simulated"} · {c.apheresis ? "takes platelet (apheresis) donors" : "no apheresis"}
-        {!c.accepts_donors && " · doesn't take donors"}
-      </div>
-      {c.holds.map((h, i) => (
-        <div key={i} className="text-sm">Stock hold: {h.status.toLowerCase()} · asked {h.units_asked}, reserved {h.units_reserved}</div>
-      ))}
-      <div className="text-xs text-faint">A synthetic centre in the demo city: not a real blood bank or live inventory.</div>
-    </div>
-  );
-}
-
-function HospitalDetail({ h }: { h: MapHospital }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="text-lg font-bold">{h.name} <span className="font-normal text-muted">{h.area}</span></div>
-      <div className="text-sm text-muted">{h.requesting ? "The hospital this request is for." : "A hospital in the demo city."}</div>
-      <div className="text-xs text-faint">Synthetic: not connected to any real hospital system.</div>
-    </div>
-  );
-}
-
 function Swatch({ k }: { k: Kind }) {
   const { token, fill, size } = KIND[k];
   const d = Math.max(8, size + 4);
@@ -93,6 +45,9 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
   const fitted = useRef<string | null>(null);
   const [tiles, setTiles] = useState<"loading" | "ok" | "failed">("loading");
   const [selected, setSelected] = useState<Selected>(null);
+  const profile = usePoll<Profile | null>(
+    () => (selected ? api.profile(selected.type, selected.id, requestId) : Promise.resolve(null)),
+    selected ? `${requestId}:${selected.type}:${selected.id}` : `${requestId}:none`, version, undefined, paused);
 
   useEffect(() => {
     if (!box.current) return;
@@ -131,10 +86,15 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
     for (const d of drawOrder(view.donors)) {
       const k = kind(d), style = KIND[k], c = colour(style.token);
       const chosen = selected?.type === "donor" && selected.id === d.id;
+      if (d.pledge || chosen) {  // a soft halo: this request's donors stand out from the background pool
+        L.circleMarker([d.lat, d.lon], {
+          radius: style.size + 8 + (chosen ? 3 : 0), stroke: false, fillColor: c, fillOpacity: 0.22, interactive: false,
+        }).addTo(group);
+      }
       L.circleMarker([d.lat, d.lon], {
         radius: style.size + (d.live ? 2 : 0) + (chosen ? 3 : 0),
         color: d.live || chosen ? colour("--text") : c, weight: d.live || chosen ? 2.5 : style.fill ? 1 : 2,
-        fillColor: c, fillOpacity: style.fill ? (k === "other" ? 0.75 : 0.95) : 0.12,
+        fillColor: c, fillOpacity: style.fill ? (k === "other" ? 0.5 : 0.95) : 0.12,
         dashArray: d.location === "approximate" ? "3 3" : undefined,
         bubblingMouseEvents: false,  // otherwise the map's own click clears the selection straight away
       }).on("click", pick("donor", d.id)).addTo(group);
@@ -143,7 +103,7 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
     for (const c of view.centres) {
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({ className: "", html: `<span class="rk-centre${c.collection ? " is-collection" : ""}"></span>`,
-          iconSize: c.collection ? [22, 22] : [16, 16] }),
+          iconSize: c.collection ? [32, 32] : [22, 22] }),
         keyboard: true, title: c.name, zIndexOffset: c.collection ? 1000 : 500,
       }).bindTooltip(c.name, { permanent: true, direction: "right", offset: [10, 0], className: "rk-label" })
         .on("click", pick("centre", c.id)).addTo(group);
@@ -151,7 +111,7 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
     for (const h of view.hospitals) {
       L.marker([h.lat, h.lon], {
         icon: L.divIcon({ className: "", html: `<span class="rk-hospital${h.requesting ? " is-requesting" : ""}">+</span>`,
-          iconSize: [20, 20] }),
+          iconSize: [30, 30] }),
         keyboard: true, title: h.name, zIndexOffset: h.requesting ? 900 : 400,
       }).bindTooltip(h.name, { permanent: h.requesting, direction: "left", offset: [-10, 0], className: "rk-label" })
         .on("click", pick("hospital", h.id)).addTo(group);
@@ -173,14 +133,9 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
   useEffect(() => setSelected(null), [requestId]);
 
   const counts = view ? tally(view) : null;
-  const collectionName = view?.centres.find((c) => c.collection)?.name ?? null;
-  const detail = !view || !selected ? null
-    : selected.type === "donor" ? view.donors.find((d) => d.id === selected.id)
-    : selected.type === "centre" ? view.centres.find((c) => c.id === selected.id)
-    : view.hospitals.find((h) => h.id === selected.id);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
       <div className="relative">
         <div ref={box} className="rakt-map h-[26rem] w-full overflow-hidden rounded-lg border border-line sm:h-[34rem]"
           role="region" aria-label="Map of the demo city: centres, the requesting hospital and donors" />
@@ -197,12 +152,11 @@ export default function DonorMap({ requestId, version, paused }: { requestId: st
       </div>
 
       <div className="space-y-5 text-sm">
-        <div className="min-h-24 rounded-lg border border-line bg-raise p-4" aria-live="polite">
-          {detail
-            ? selected?.type === "donor" ? <DonorDetail d={detail as MapDonor} centreName={collectionName} />
-              : selected?.type === "centre" ? <CentreDetail c={detail as MapCentre} view={view!} />
-              : <HospitalDetail h={detail as MapHospital} />
-            : <p className="text-muted">Tap a donor, centre or hospital for details.</p>}
+        <div className="min-h-24 rounded-lg border border-line bg-raise p-4 text-base lg:max-h-[34rem] lg:overflow-y-auto" aria-live="polite">
+          {selected && view
+            ? <MapProfile profile={profile.data} error={profile.error} now={view.now} requestId={requestId}
+                onDonor={(id) => setSelected({ type: "donor", id })} />
+            : <p className="text-muted">Tap a donor, blood centre or hospital to see their profile.</p>}
         </div>
 
         <div>

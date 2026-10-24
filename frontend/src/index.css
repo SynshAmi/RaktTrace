@@ -111,8 +111,15 @@ select option {
   font-family: var(--font-sans);
 }
 
+/* The streets are the backdrop: faded so donors, centres and hospitals carry the map. */
+.rakt-map .leaflet-tile-pane {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
 :root[data-theme="dark"] .rakt-map .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(1.6);
+  opacity: 0.55;
+  filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.7);
 }
 
 .rakt-map .leaflet-control-attribution {
@@ -135,8 +142,9 @@ select option {
   border: 1px solid var(--line-strong);
   color: var(--text);
   box-shadow: none;
-  font-weight: 600;
-  padding: 1px 6px;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 8px;
 }
 
 .rk-label.leaflet-tooltip::before {
@@ -145,16 +153,16 @@ select option {
 
 .rk-centre {
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border: 2px solid var(--text);
   border-radius: 3px;
   background: var(--bg);
 }
 
 .rk-centre.is-collection {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   background: var(--tab);
   border-color: #ffffff;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab) 35%, transparent);
@@ -163,8 +171,9 @@ select option {
 .rk-hospital {
   display: inline-grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
   border-radius: 50%;
   border: 2px solid var(--text);
   background: var(--bg);

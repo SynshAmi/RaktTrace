@@ -193,3 +193,54 @@ def test_map_endpoint_shape_privacy_and_reset(api):
     assert api.get("/api/map").status_code == 200  # no request: the world only
     api.post("/api/demo/reset", json={"scenario": "s1_surgery_tonight"})
     assert api.get(f"/api/map?request_id={rid}").status_code == 404  # the old request is gone with its world
+
+
+# --- Marker profiles ---
+
+def test_donor_profile_shows_the_synthetic_profile_and_the_planners_checks_but_no_contact(api):
+    state, rid = reset("s2_dengue_sdp")
+    bot.on_callback(JUDGE, "Judge A.", "O:JOIN")
+    run_until(state, lambda: any(p.status == S.ACTIVE for p in state.main.pledges.values()))
+    active = next(p for p in state.main.pledges.values() if p.status == S.ACTIVE)
+    body = api.get(f"/api/map/profile/donor/{active.donor_id}?request_id={rid}").json()
+    donor = state.main.donors[active.donor_id]
+    assert (body["age"], body["weight_kg"], body["group"], body["apheresis_ok"]) == \
+        (donor.age, donor.weight_kg, donor.group.value, donor.apheresis_ok)
+    assert body["pledge"]["status"] == "ACTIVE" and body["pledge"]["booking_code"] == active.booking_code
+    assert body["rule_check"]["product"] == "SDP"
+    live_id = live.registry.identities[JUDGE].donor_id
+    raw = json.dumps(api.get(f"/api/map/profile/donor/{live_id}?request_id={rid}").json())
+    assert JUDGE not in raw and "chat_id" not in raw and "phone" not in raw
+
+
+def test_donor_profile_explains_a_failed_rule_check(api):
+    state, rid = reset("s2_dengue_sdp")
+    over_60 = {**PROFILE, "age": "62", "location": "area", "area": "Jayanagar"}
+    donor_id, _ = create(OTHER, over_60)
+    body = api.get(f"/api/map/profile/donor/{donor_id}?request_id={rid}").json()
+    assert body["rule_check"]["passes"] is False
+    assert any("apheresis age" in r for r in body["rule_check"]["reasons"])
+    assert body["candidate_why"] is None  # the planner never lists them
+
+
+def test_centre_and_hospital_profiles(api):
+    state, rid = reset("s2_dengue_sdp")
+    run_until(state, lambda: any(p.status == S.ACTIVE for p in state.main.pledges.values()))
+    request = state.main.requests[rid]
+    centre = api.get(f"/api/map/profile/centre/{request.collection_centre_id}?request_id={rid}").json()
+    assert any(d["status"] == "ACTIVE" and d["booking_code"] for d in centre["donors_coming"])
+    assert all("true_units" not in x for x in centre["listed_stock"])  # the hidden truth stays hidden
+    hospital = api.get(f"/api/map/profile/hospital/{request.hospital_id}?request_id={rid}").json()
+    assert [r["id"] for r in hospital["requests"]] == [rid]
+    assert api.get("/api/map/profile/donor/nobody").status_code == 404
+    assert api.get("/api/map/profile/planet/c_a").status_code == 422
+
+
+def test_profile_reads_never_change_state(api):
+    state, rid = reset("s2_dengue_sdp")
+    run_until(state, lambda: bool(state.main.pledges))
+    before = copy.deepcopy(state.main)
+    for p in list(state.main.pledges.values())[:3]:
+        api.get(f"/api/map/profile/donor/{p.donor_id}?request_id={rid}")
+    api.get(f"/api/map/profile/centre/c_b?request_id={rid}")
+    assert state.main == before

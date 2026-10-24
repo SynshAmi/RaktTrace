@@ -7,14 +7,14 @@ export type Kind = "ready" | "atCentre" | "going" | "standby" | "invited" | "can
 // Colours are theme tokens (index.css): green only for staff-confirmed ready, amber for at the centre but not ready,
 // red only for a donor who can no longer help.
 export const KIND: Record<Kind, { label: string; token: string; fill: boolean; size: number }> = {
-  ready: { label: "Unit ready (staff confirmed)", token: "--success", fill: true, size: 9 },
-  atCentre: { label: "At the centre or collected, not ready yet", token: "--caution", fill: true, size: 9 },
-  going: { label: "Said yes in time, booked to donate", token: "--accent", fill: true, size: 9 },
-  standby: { label: "Standby (said yes, kept in reserve)", token: "--accent", fill: false, size: 8 },
-  invited: { label: "Invited, no answer yet", token: "--text", fill: false, size: 7 },
-  cantHelp: { label: "Can't help now (too late, deferred, no-show, failed test)", token: "--danger", fill: false, size: 7 },
-  declined: { label: "Said no, stopped, or released", token: "--faint", fill: false, size: 6 },
-  candidate: { label: "Could be invited: passes the planner's filters now", token: "--text", fill: true, size: 5 },
+  ready: { label: "Unit ready (staff confirmed)", token: "--success", fill: true, size: 12 },
+  atCentre: { label: "At the centre or collected, not ready yet", token: "--caution", fill: true, size: 12 },
+  going: { label: "Said yes in time, booked to donate", token: "--accent", fill: true, size: 12 },
+  standby: { label: "Standby (said yes, kept in reserve)", token: "--accent", fill: false, size: 11 },
+  invited: { label: "Invited, no answer yet", token: "--text", fill: false, size: 9 },
+  cantHelp: { label: "Can't help now (too late, deferred, no-show, failed test)", token: "--danger", fill: false, size: 9 },
+  declined: { label: "Said no, stopped, or released", token: "--faint", fill: false, size: 7 },
+  candidate: { label: "Could be invited: passes the planner's filters now", token: "--text", fill: true, size: 7 },
   other: { label: "Other registered donor", token: "--faint", fill: true, size: 4 },
 };
 

@@ -109,13 +109,13 @@ export default function RequestView({ id, requests, onPick, version, paused, run
           <span className={`ml-2 ${left ? "text-accent" : "text-danger"}`}>{left ?? "passed"}</span>
         </span>
       </div>
-      {view.error && <p className="mt-3 text-sm text-danger">Couldn't refresh: {view.error}</p>}
+      {view.error && <p className="mt-3 text-base text-danger">Couldn't refresh: {view.error}</p>}
 
       <div className={`mt-8 grid gap-10 ${compare ? "xl:grid-cols-[minmax(0,7fr)_minmax(20rem,3fr)]" : "xl:grid-cols-[minmax(0,1fr)_17rem]"}`}>
         <section aria-label="RaktTrace" className="@container">
           <div className="grid gap-x-8 gap-y-5 border-b border-line pb-6 @4xl:grid-cols-[minmax(17rem,1fr)_auto_auto]">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
                 RaktTrace · <span className={toneText[status.tone]}>{v.status}</span>
               </h2>
               <div className={`flex items-center gap-2 text-3xl font-bold tracking-tight ${toneText[status.tone]}`}>
@@ -137,19 +137,21 @@ export default function RequestView({ id, requests, onPick, version, paused, run
           <div className="grid gap-x-10 gap-y-6 border-b border-line py-6 @3xl:grid-cols-2">
             <div className="space-y-5">
               <div>
-                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Units</h3>
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">Units</h3>
                 <UnitRows v={v} />
               </div>
-              <Ladder v={v} />
             </div>
             <div>
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted">Estimate</h3>
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Estimate</h3>
               <Gauge v={v} decisions={decisions.data ?? []} closed={closed} />
             </div>
           </div>
 
           <div className="pt-6">
             <Supply v={v} decisions={decisions.data ?? []} version={version} paused={paused} />
+          </div>
+          <div className="mt-8 border-t border-line pt-6">
+            <Ladder v={v} />
           </div>
           <Notifications requestId={id} run={run} decisions={decisions.data} label={activity} />
         </section>
@@ -159,7 +161,7 @@ export default function RequestView({ id, requests, onPick, version, paused, run
             <Baseline view={b} units={v.units} deadline={v.deadline_at} now={v.now} onHide={() => toggleCompare(false)} />
           ) : (
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Today's workflow</h2>
+              <h2 className="text-base font-bold uppercase tracking-wider text-muted">Today's workflow</h2>
               {b && (
                 <div className="mt-2 text-2xl font-bold">
                   {b.status === "SAYS_FULFILLED" && b.said_fulfilled_at
