@@ -142,6 +142,14 @@ export type HospitalProfile = {
 };
 export type Profile = DonorProfile | CentreProfile | HospitalProfile;
 
+export type Phone = { id: string; name: string; role: "donor" | "staff" | "family" | "coordinator"; unread: number; last_at: string | null };
+export type PhoneButton = { id: string; title: string };
+export type PhoneMessage = {
+  id: string; at: string; direction: "in" | "out"; channel: string; to_name: string; request_id: string | null;
+  kind: string; body: string; buttons: PhoneButton[]; read_by: string | null;
+};
+export type LlmStatus = { enabled: boolean; chain: { name: string; healthy: boolean }[] };
+
 export class ApiError extends Error {}
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -173,4 +181,9 @@ export const api = {
   map: (id: string) => call<MapView>(`/map?request_id=${encodeURIComponent(id)}`),
   profile: (kind: Profile["kind"], id: string, requestId: string) =>
     call<Profile>(`/map/profile/${kind}/${encodeURIComponent(id)}?request_id=${encodeURIComponent(requestId)}`),
+  phones: () => call<Phone[]>("/sim/phones"),
+  messages: (phone: string) => call<PhoneMessage[]>(`/sim/phones/${encodeURIComponent(phone)}/messages`),
+  reply: (phone_id: string, reply: { button_id: string } | { text: string }) => call<{ ok: boolean }>("/sim/reply", { phone_id, ...reply }),
+  llm: () => call<LlmStatus>("/llm"),
+  setLlm: (enabled: boolean) => call<LlmStatus>("/llm", { enabled }),
 };

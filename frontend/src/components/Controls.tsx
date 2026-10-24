@@ -17,6 +17,8 @@ type Props = {
   onStep: () => void;
   onAdvance: (minutes: number) => void;
   onAuto: (on: boolean) => void;
+  llm: boolean | null;
+  onLlm: (on: boolean) => void;
   theme: Theme;
   onTheme: (theme: Theme) => void;
 };
@@ -181,6 +183,16 @@ export default function Controls(p: Props) {
               title={playing ? "Pause the sim clock" : "Run the sim clock at 1 sim minute per second"}
             >
               {playing ? "❚❚ Pause" : "▶ Play"}
+            </BarButton>
+            <BarButton
+              onClick={() => p.llm !== null && p.onLlm(!p.llm)}
+              disabled={p.busy !== null || p.offline || p.llm === null}
+              working={p.busy === "LLM on" || p.busy === "LLM off"}
+              aria-pressed={!!p.llm}
+              title={p.llm ? "LLM reading is on: free-text replies go to the LLM first. Click to use the rule parser only."
+                : "LLM reading is off: the rule parser reads replies. Click to turn the LLM on."}
+            >
+              LLM {p.llm === null ? "…" : p.llm ? "on" : "off"}
             </BarButton>
             <span className="basis-full truncate text-sm text-on-bar-muted md:max-w-56 md:basis-auto" aria-live="polite">
               {p.busy ? `${p.busy}…` : p.notice ?? (playing ? "Playing · 1 sim min / s" : "Paused")}

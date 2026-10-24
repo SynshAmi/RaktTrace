@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import Controls, { type Theme } from "./components/Controls";
+import Phones from "./pages/Phones";
 import RequestView from "./pages/RequestView";
 import { hhmm } from "./format";
 import { usePoll } from "./usePoll";
@@ -33,6 +34,7 @@ export default function App() {
   const [busy, setBusy] = useState<string | null>(null);
   const [controlError, setControlError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [page, setPage] = useState<"dashboard" | "phones">(() => (stored("rakt.page") === "phones" ? "phones" : "dashboard"));
   const [run, setRun] = useState(0);  // bumps on every scenario load: notifications and the trend start afresh
   const [activity, setActivity] = useState("Update");  // what last moved the clock, for notification summaries
   const [picked, setPicked] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function App() {
   const clock = usePoll(api.clock, "clock", version, undefined, busy !== null);
   const health = usePoll(api.health, "health", version, 10_000);
   const requests = usePoll(api.requests, "requests", version, undefined, busy !== null);
+  const llm = usePoll(api.llm, "llm", version, 10_000);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -105,6 +108,8 @@ export default function App() {
         })}
         onAdvance={(m) => control(`+${m} min`, () => api.advance(m))}
         onAuto={(on) => control(on ? "Play" : "Pause", () => api.auto(on))}
+        llm={llm.data?.enabled ?? null}
+        onLlm={(on) => control(on ? "LLM on" : "LLM off", () => api.setLlm(on))}
         theme={theme}
         onTheme={(next) => {
           setTheme(next);
@@ -117,8 +122,20 @@ export default function App() {
         </p>
       )}
 
+      <nav aria-label="Pages" className="mx-auto flex w-full max-w-420 gap-2 border-b border-line px-4 pt-3 sm:px-6">
+        {(["dashboard", "phones"] as const).map((id) => (
+          <button key={id} onClick={() => { setPage(id); store("rakt.page", id); }} aria-current={page === id}
+            className={`-mb-px rounded-t-md border-b-4 px-4 py-1.5 font-semibold ${page === id
+              ? "border-tab bg-tab/15 text-text" : "border-transparent text-muted hover:bg-text/5 hover:text-text"}`}>
+            {id === "dashboard" ? "Dashboard" : "Phones"}
+          </button>
+        ))}
+      </nav>
+
       <div className="flex-1">
-        {requestId ? (
+        {page === "phones" ? (
+          <Phones version={version} paused={busy !== null} run={run} onChanged={() => setVersion((n) => n + 1)} />
+        ) : requestId ? (
           <RequestView id={requestId} requests={list} onPick={setPicked} version={version} paused={busy !== null}
             run={run} activity={clock.data?.auto ? "Auto" : activity} />
         ) : (

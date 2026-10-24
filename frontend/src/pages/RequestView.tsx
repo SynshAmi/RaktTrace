@@ -127,11 +127,31 @@ export default function RequestView({ id, requests, onPick, version, paused, run
             <Figures v={v} />
             <Chance v={v} trend={direction} from={moves.current.previous} />
           </div>
-          {v.escalation.level > 0 && (
-            <p className="mt-4 inline-flex items-center gap-2 rounded border-2 border-danger px-3 py-1 font-semibold text-danger">
+          {v.escalation.level === 1 && (
+            <p className="mt-4 inline-flex items-center gap-2 rounded border-2 border-caution px-3 py-1 font-semibold text-caution">
               <span aria-hidden>!</span>
-              {ESCALATION[v.escalation.level] ?? `Escalation level ${v.escalation.level}.`}
+              {ESCALATION[1]}
             </p>
+          )}
+          {v.escalation.level >= 2 && (
+            <div role="alert" className="mt-4 rounded-md border-2 border-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-4 py-3">
+              <div className="font-bold text-danger">! Escalation level 2: the coordinator was alerted</div>
+              {v.escalation.brief ? (
+                <p className="mt-2 whitespace-pre-line">{v.escalation.brief}</p>
+              ) : (
+                <p className="mt-2 text-muted">No brief was recorded for this alert.</p>
+              )}
+              <div className="mt-3 text-xs font-bold uppercase tracking-wider text-muted">Call list</div>
+              {v.escalation.call_list.length > 0 ? (
+                <ul className="mt-1 space-y-0.5">
+                  {v.escalation.call_list.map((c) => (
+                    <li key={c.centre}><span className="font-semibold">{c.centre}</span> · {c.phone} · <span className="text-muted">{c.note}</span></li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-muted">No centre within reach lists compatible units, so the call list is empty.</p>
+              )}
+            </div>
           )}
 
           <div className="space-y-8 border-b border-line py-6">
